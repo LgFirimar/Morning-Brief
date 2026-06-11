@@ -1,7 +1,7 @@
 // Morning Brief — Cloudflare Worker
-// GET  / → serves the app HTML (fetched from GitHub Pages)
-// POST / → proxies to Anthropic API
-// Same-origin for both = no CORS issues on iOS Safari
+// GET  / → serves the app (fetched from GitHub Pages)
+// POST / → proxies to Anthropic; accepts apiKey in body so browser
+//           only needs Content-Type (no custom headers = no CORS preflight)
 
 const ANTHROPIC_API = "https://api.anthropic.com/v1/messages";
 const GITHUB_PAGES  = "https://lgfirimar.github.io/Morning-Brief/";
@@ -16,12 +16,12 @@ export default {
         headers: {
           "Access-Control-Allow-Origin":  "*",
           "Access-Control-Allow-Methods": "POST, GET, OPTIONS",
-          "Access-Control-Allow-Headers": "Content-Type, x-api-key, anthropic-version",
+          "Access-Control-Allow-Headers": "Content-Type",
         },
       });
     }
 
-    // Serve the app — user bookmarks the Worker URL on mobile
+    // Serve the app
     if (method === "GET") {
       const res  = await fetch(GITHUB_PAGES, { cf: { cacheTtl: 120 } });
       const html = await res.text();
@@ -30,29 +30,39 @@ export default {
       });
     }
 
-    // Proxy to Anthropic — same-origin from the served app, no CORS
+    // Proxy to Anthropic — apiKey comes in the body, not headers
     if (method === "POST") {
-      const apiKey = request.headers.get("x-api-key");
+      let body;
+      try { body = await request.json(); }
+      catch { return new Response(JSON.stringify({ error: { message: "Invalid JSON body" } }), { status: 400, headers: { "Content-Type": "application/json" } }); }
+
+      const apiKey = body._apiKey;
       if (!apiKey) {
         return new Response(
-          JSON.stringify({ error: { message: "Missing x-api-key" } }),
+          JSON.stringify({ error: { message: "Missing _apiKey in body" } }),
           { status: 401, headers: { "Content-Type": "application/json" } }
         );
       }
+
+      // Strip _apiKey before forwarding to Anthropic
+      const { _apiKey, ...anthropicBody } = body;
 
       const upstream = await fetch(ANTHROPIC_API, {
         method:  "POST",
         headers: {
           "Content-Type":      "application/json",
           "x-api-key":         apiKey,
-          "anthropic-version": request.headers.get("anthropic-version") || "2023-06-01",
+          "anthropic-version": "2023-06-01",
         },
-        body: await request.text(),
+        body: JSON.stringify(anthropicBody),
       });
 
       return new Response(await upstream.text(), {
         status:  upstream.status,
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type":                "application/json",
+          "Access-Control-Allow-Origin": "*",
+        },
       });
     }
 

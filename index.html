@@ -476,9 +476,7 @@ async function fetchTab(tab) {
     const data = await new Promise((resolve, reject) => {
       const xhr = new XMLHttpRequest();
       xhr.open("POST", API_URL);
-      xhr.setRequestHeader("Content-Type",      "application/json");
-      xhr.setRequestHeader("x-api-key",         key);
-      xhr.setRequestHeader("anthropic-version", "2023-06-01");
+      xhr.setRequestHeader("Content-Type", "application/json");
       xhr.timeout = 60000;
       xhr.onload  = () => {
         try { resolve(JSON.parse(xhr.responseText)); }
@@ -487,8 +485,10 @@ async function fetchTab(tab) {
       xhr.onerror   = () => reject(new Error("XHR network error"));
       xhr.ontimeout = () => reject(new Error("Request timed out (60s)"));
       xhr.send(JSON.stringify({
-        model: MODEL, max_tokens: 4000,
-        messages: [{ role:"user", content: getPrompt(tab) }],
+        _apiKey:    key,
+        model:      MODEL,
+        max_tokens: 4000,
+        messages:   [{ role:"user", content: getPrompt(tab) }],
       }));
     });
 
