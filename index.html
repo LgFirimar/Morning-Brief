@@ -507,7 +507,7 @@ async function fetchTab(tab) {
     } else if (!msg || e?.name === "TypeError") {
       const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
       state.errors[tab] = isIOS
-        ? "iOS Safari חוסמת את הקריאה. נסי: הגדרות ← Safari ← כבי ״מנע מעקב בין אתרים״. או פתחי במחשב."
+        ? "iOS Safari is blocking the request. Try: Settings → Safari → turn off 'Prevent Cross-Site Tracking'. Or open on desktop."
         : "שגיאת רשת. ודאי שאת פותחת: lgfirimar.github.io/Morning-Brief";
     } else {
       state.errors[tab] = msg;
