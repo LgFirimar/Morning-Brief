@@ -473,25 +473,26 @@ async function fetchTab(tab) {
   render();
 
   try {
-    const res = await fetch(API_URL, {
-      method: "POST",
-      headers: {
-        "Content-Type":      "application/json",
-        "x-api-key":         key,
-        "anthropic-version": "2023-06-01",
-      },
-      body: JSON.stringify({
+    const data = await new Promise((resolve, reject) => {
+      const xhr = new XMLHttpRequest();
+      xhr.open("POST", API_URL);
+      xhr.setRequestHeader("Content-Type",      "application/json");
+      xhr.setRequestHeader("x-api-key",         key);
+      xhr.setRequestHeader("anthropic-version", "2023-06-01");
+      xhr.timeout = 60000;
+      xhr.onload  = () => {
+        try { resolve(JSON.parse(xhr.responseText)); }
+        catch { reject(new Error(`HTTP ${xhr.status}: response not JSON`)); }
+      };
+      xhr.onerror   = () => reject(new Error("XHR network error"));
+      xhr.ontimeout = () => reject(new Error("Request timed out (60s)"));
+      xhr.send(JSON.stringify({
         model: MODEL, max_tokens: 4000,
         messages: [{ role:"user", content: getPrompt(tab) }],
-      }),
+      }));
     });
 
-    let data;
-    try { data = await res.json(); }
-    catch { throw new Error(`HTTP ${res.status} — תגובה לא תקינה מהשרת`); }
-
     if (data.error) throw new Error(data.error.message);
-    if (!res.ok)    throw new Error(`HTTP ${res.status}`);
 
     const text  = (data.content || []).filter(b => b.type === "text").map(b => b.text).join("");
     const clean = text.replace(/```json|```/g, "").trim();
