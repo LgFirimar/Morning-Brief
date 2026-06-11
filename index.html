@@ -361,7 +361,7 @@
 <script>
 // ─── CONFIG ───────────────────────────────────────────────────────────────────
 const API_URL  = "https://api.anthropic.com/v1/messages";
-const MODEL    = "claude-sonnet-4-5";
+const MODEL    = "claude-sonnet-4-6";
 const INTERESTS_LIST = ["טבע", "תרבות", "הרפתקאה", "אמנות", "ספורט", "אוכל"];
 
 // ─── TIME ─────────────────────────────────────────────────────────────────────
@@ -461,6 +461,13 @@ async function fetchTab(tab) {
   const key = state.apiKey;
   if (!key) { state.showSettings = true; state.settingsTab = "key"; render(); return; }
 
+  if (location.protocol === "file:") {
+    state.errors[tab]  = "הקובץ נפתח ישירות מהמכשיר. יש לפתוח דרך: lgfirimar.github.io/Morning-Brief";
+    state.loading[tab] = false;
+    render();
+    return;
+  }
+
   state.loading[tab] = true;
   state.errors[tab]  = null;
   render();
@@ -494,9 +501,11 @@ async function fetchTab(tab) {
     try { state.cache[tab] = JSON.parse(clean); }
     catch { throw new Error("שגיאה בניתוח התשובה מ-Claude"); }
   } catch(e) {
-    const msg = e?.message || String(e);
+    const msg = e?.message || "";
     if (msg.includes("api_key") || msg.includes("auth") || msg.includes("401")) {
       state.errors[tab] = "מפתח API שגוי. בדקי בהגדרות.";
+    } else if (!msg || e?.name === "TypeError") {
+      state.errors[tab] = "שגיאת רשת (CORS/חיבור). ודאי שאת פותחת: lgfirimar.github.io/Morning-Brief ולא קובץ מקומי. בפלאפון נסי Chrome במקום Safari.";
     } else {
       state.errors[tab] = msg;
     }
