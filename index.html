@@ -505,7 +505,10 @@ async function fetchTab(tab) {
     if (msg.includes("api_key") || msg.includes("auth") || msg.includes("401")) {
       state.errors[tab] = "מפתח API שגוי. בדקי בהגדרות.";
     } else if (!msg || e?.name === "TypeError") {
-      state.errors[tab] = "שגיאת רשת (CORS/חיבור). ודאי שאת פותחת: lgfirimar.github.io/Morning-Brief ולא קובץ מקומי. בפלאפון נסי Chrome במקום Safari.";
+      const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+      state.errors[tab] = isIOS
+        ? "iOS Safari חוסמת את הקריאה. נסי: הגדרות ← Safari ← כבי ״מנע מעקב בין אתרים״. או פתחי במחשב."
+        : "שגיאת רשת. ודאי שאת פותחת: lgfirimar.github.io/Morning-Brief";
     } else {
       state.errors[tab] = msg;
     }
