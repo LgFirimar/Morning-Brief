@@ -1,0 +1,506 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>בריפינג בוקר ☀️</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: -apple-system, 'Segoe UI', Arial, sans-serif;
+    background: #f0f2f8;
+    direction: rtl;
+    min-height: 100vh;
+  }
+
+  /* HEADER */
+  .header {
+    background: linear-gradient(160deg, #0b1a30 0%, #0f3460 100%);
+    color: #fff;
+    padding: 24px 18px 0;
+  }
+  .header-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 14px;
+  }
+  .header-eyebrow {
+    font-size: 0.65rem;
+    letter-spacing: 2px;
+    color: #6fa3c8;
+    text-transform: uppercase;
+    margin-bottom: 4px;
+  }
+  .header-title {
+    font-size: 1.55rem;
+    font-weight: 900;
+    letter-spacing: -0.5px;
+  }
+  .header-date {
+    font-size: 0.78rem;
+    color: #7aa8c4;
+    margin-top: 3px;
+  }
+  .btn-settings {
+    background: rgba(255,255,255,0.1);
+    border: 1px solid rgba(255,255,255,0.15);
+    color: #aac8e0;
+    border-radius: 10px;
+    padding: 7px 12px;
+    font-size: 0.78rem;
+    cursor: pointer;
+  }
+  .thursday-badge {
+    display: inline-block;
+    background: #1e8449;
+    color: #fff;
+    font-size: 0.72rem;
+    font-weight: 700;
+    border-radius: 8px;
+    padding: 4px 10px;
+    margin-bottom: 14px;
+  }
+
+  /* TABS */
+  .tabs {
+    display: flex;
+    gap: 2px;
+    margin-top: 4px;
+  }
+  .tab {
+    flex: 1;
+    padding: 10px 4px 8px;
+    font-size: 0.76rem;
+    font-weight: 700;
+    background: transparent;
+    color: #6fa3c8;
+    border: none;
+    border-radius: 10px 10px 0 0;
+    cursor: pointer;
+    transition: all 0.2s;
+    position: relative;
+    border-bottom: 3px solid transparent;
+  }
+  .tab.active { background: #f0f2f8; border-bottom: 3px solid transparent; }
+  .tab.active.canada { color: #c0392b; }
+  .tab.active.toronto { color: #1a5276; }
+  .tab.active.weekend { color: #1e8449; }
+  .tab-new {
+    display: inline-block;
+    background: #e74c3c;
+    color: #fff;
+    font-size: 0.55rem;
+    border-radius: 8px;
+    padding: 1px 5px;
+    margin-right: 3px;
+    vertical-align: middle;
+  }
+
+  /* CONTENT */
+  .content {
+    max-width: 620px;
+    margin: 0 auto;
+    padding: 14px 14px 40px;
+  }
+
+  /* CARD */
+  .card {
+    background: #fff;
+    border-radius: 14px;
+    margin-bottom: 10px;
+    overflow: hidden;
+    box-shadow: 0 1px 6px rgba(0,0,0,0.06);
+    border: 1px solid rgba(0,0,0,0.05);
+  }
+  .card-body { padding: 14px 14px 10px; }
+  .card-top { display: flex; gap: 10px; align-items: flex-start; }
+  .card-emoji { font-size: 1.5rem; line-height: 1; flex-shrink: 0; }
+  .card-meta { display: flex; gap: 5px; margin-bottom: 6px; flex-wrap: wrap; align-items: center; }
+  .badge {
+    font-size: 0.67rem; font-weight: 700; padding: 2px 9px;
+    border-radius: 20px; white-space: nowrap;
+  }
+  .card-title {
+    font-weight: 800; font-size: 0.92rem; color: #111;
+    line-height: 1.4; direction: rtl;
+  }
+  .card-summary {
+    font-size: 0.82rem; color: #555; direction: rtl;
+    line-height: 1.65; margin-top: 8px;
+  }
+  .card-address {
+    font-size: 0.72rem; color: #999; direction: ltr;
+    text-align: right; margin-top: 5px;
+  }
+  .card-actions {
+    display: flex; gap: 8px; justify-content: flex-end;
+    align-items: center; margin-top: 10px;
+  }
+  .btn-link {
+    font-size: 0.73rem; font-weight: 700; text-decoration: none;
+    background: none; border: none; cursor: pointer;
+  }
+  .btn-expand {
+    font-size: 0.73rem; font-weight: 700;
+    border-radius: 20px; padding: 3px 13px; cursor: pointer;
+    transition: all 0.18s;
+  }
+  .card-details {
+    padding: 12px 14px; font-size: 0.82rem;
+    color: #333; direction: rtl; line-height: 1.7;
+    border-top: 1px solid rgba(0,0,0,0.05);
+  }
+
+  /* REFRESH ROW */
+  .refresh-row {
+    display: flex; justify-content: flex-end; margin-bottom: 10px;
+  }
+  .btn-refresh {
+    font-size: 0.73rem; font-weight: 700;
+    background: transparent; border-radius: 20px;
+    padding: 4px 13px; cursor: pointer;
+  }
+
+  /* LOADING */
+  .loading {
+    text-align: center; padding: 55px 0; color: #aaa;
+  }
+  .loading-icon { font-size: 2.2rem; margin-bottom: 10px; }
+  .loading-text { font-size: 0.85rem; }
+  .loading-bar {
+    margin: 16px auto 0; width: 160px; height: 3px;
+    background: #e0e0e0; border-radius: 4px; overflow: hidden;
+  }
+  .loading-bar-inner {
+    height: 100%; width: 45%; border-radius: 4px;
+    animation: loadslide 1.4s ease-in-out infinite;
+  }
+  @keyframes loadslide {
+    0% { margin-right: 100%; }
+    100% { margin-right: -45%; }
+  }
+
+  /* ERROR */
+  .error-box {
+    background: #fff5f5; border: 1px solid #fca5a5;
+    border-radius: 12px; padding: 18px; text-align: center;
+    color: #b91c1c; font-size: 0.85rem;
+  }
+  .btn-retry {
+    margin-top: 12px; display: inline-block;
+    color: #fff; border: none; border-radius: 8px;
+    padding: 8px 22px; cursor: pointer; font-weight: 700; font-size: 0.85rem;
+  }
+
+  /* SETTINGS MODAL */
+  .modal-bg {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.5);
+    display: flex; align-items: center; justify-content: center;
+    z-index: 100; padding: 20px;
+  }
+  .modal {
+    background: #fff; border-radius: 18px;
+    padding: 24px; width: 100%; max-width: 380px;
+    direction: rtl;
+  }
+  .modal h2 { font-size: 1.1rem; margin-bottom: 6px; }
+  .modal p { font-size: 0.8rem; color: #666; margin-bottom: 14px; line-height: 1.5; }
+  .modal input {
+    width: 100%; border: 1.5px solid #d0d5e0; border-radius: 10px;
+    padding: 10px 12px; font-size: 0.82rem; direction: ltr;
+    margin-bottom: 12px; outline: none;
+  }
+  .modal input:focus { border-color: #1a5276; }
+  .modal-btns { display: flex; gap: 8px; }
+  .btn-save {
+    flex: 1; background: #0f3460; color: #fff; border: none;
+    border-radius: 10px; padding: 10px; font-weight: 700;
+    font-size: 0.85rem; cursor: pointer;
+  }
+  .btn-cancel {
+    background: #f0f2f8; color: #555; border: none;
+    border-radius: 10px; padding: 10px 16px; font-weight: 600;
+    font-size: 0.85rem; cursor: pointer;
+  }
+  .modal-note {
+    font-size: 0.72rem; color: #999; margin-top: 10px; line-height: 1.5;
+  }
+</style>
+</head>
+<body>
+
+<div id="app"></div>
+
+<script>
+// ─── CONFIG ───────────────────────────────────────────────────────────────────
+const API_URL = "https://api.anthropic.com/v1/messages";
+const MODEL = "claude-sonnet-4-20250514";
+
+const TABS = [
+  { key: "canada",  label: "🍁 קנדה",   cls: "canada",  color: "#c0392b", bg: "#fff5f5" },
+  { key: "toronto", label: "🏙️ טורונטו", cls: "toronto", color: "#1a5276", bg: "#eaf4fb" },
+  { key: "weekend", label: "🎉 סופ״ש",   cls: "weekend", color: "#1e8449", bg: "#eafaf1" },
+];
+
+const NOW = new Date();
+const IS_THURSDAY = NOW.getDay() === 4;
+const DATE_STR = NOW.toLocaleDateString("he-IL", { weekday:"long", year:"numeric", month:"long", day:"numeric" });
+
+// ─── STATE ────────────────────────────────────────────────────────────────────
+let state = {
+  activeTab: "canada",
+  cache: {},
+  loading: {},
+  errors: {},
+  expanded: {},
+  showSettings: false,
+  apiKey: localStorage.getItem("mbriefing_key") || "",
+};
+
+// ─── PROMPTS ─────────────────────────────────────────────────────────────────
+function getPrompt(tab) {
+  if (tab === "canada") return `Today is ${DATE_STR} in Toronto, Canada.
+Return ONLY a raw JSON array of exactly 5 news items about Canada (national level) — politics, news, culture, viral/popular from the past 48 hours.
+Each item must have: title (Hebrew headline ≤12 words), summary (2-3 Hebrew sentences), details (4-5 Hebrew sentences with more context), category (one of: פוליטיקה|חדשות|תרבות|ויראלי), emoji (1 emoji), url (source URL or empty string).
+Return ONLY the JSON array, no markdown, no backticks.`;
+
+  if (tab === "toronto") return `Today is ${DATE_STR} in Toronto, Canada.
+Return ONLY a raw JSON array of exactly 5 news items specifically about Toronto — local politics, city news, culture, viral topics from the past 48 hours.
+Each item must have: title (Hebrew headline ≤12 words), summary (2-3 Hebrew sentences), details (4-5 Hebrew sentences with more context), category (one of: פוליטיקה|חדשות|תרבות|ויראלי), emoji (1 emoji), url (source URL or empty string).
+Return ONLY the JSON array, no markdown, no backticks.`;
+
+  if (tab === "weekend") return `Today is ${DATE_STR} in Toronto, Canada.
+Return ONLY a raw JSON array of exactly 6 weekend activity recommendations for a family with children ages 5 and 9, based in North York / Toronto. Max 2hr drive, prefer under 1hr. Mix outdoor/indoor, seasonal activities preferred.
+Each item must have: title (activity name in Hebrew), summary (2-3 Hebrew sentences describing it), details (4-5 Hebrew sentences with hours, cost, tips), category (one of: טבע|תרבות|הרפתקאה|אמנות|ספורט|אוכל), emoji (1 emoji), distance (e.g. ~30 דקות נסיעה), address (full English address), url (website or empty string).
+Return ONLY the JSON array, no markdown, no backticks.`;
+}
+
+// ─── API CALL ─────────────────────────────────────────────────────────────────
+async function fetchTab(tab) {
+  const key = state.apiKey;
+  if (!key) { state.showSettings = true; render(); return; }
+
+  state.loading[tab] = true;
+  state.errors[tab] = null;
+  render();
+
+  try {
+    const res = await fetch(API_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-api-key": key,
+        "anthropic-version": "2023-06-01",
+        "anthropic-dangerous-direct-browser-access": "true",
+      },
+      body: JSON.stringify({
+        model: MODEL,
+        max_tokens: 1000,
+        messages: [{ role: "user", content: getPrompt(tab) }]
+      })
+    });
+
+    const data = await res.json();
+    if (data.error) throw new Error(data.error.message);
+
+    const text = (data.content || []).filter(b => b.type === "text").map(b => b.text).join("");
+    const clean = text.replace(/```json|```/g, "").trim();
+    const parsed = JSON.parse(clean);
+    state.cache[tab] = parsed;
+  } catch(e) {
+    state.errors[tab] = e.message.includes("api_key") || e.message.includes("auth")
+      ? "מפתח API שגוי. בדקי בהגדרות."
+      : "שגיאה בטעינה. נסי שוב.";
+  } finally {
+    state.loading[tab] = false;
+    render();
+  }
+}
+
+// ─── RENDER ───────────────────────────────────────────────────────────────────
+function render() {
+  document.getElementById("app").innerHTML = buildHTML();
+  attachEvents();
+}
+
+function buildHTML() {
+  const tab = TABS.find(t => t.key === state.activeTab);
+  return `
+    ${state.showSettings ? buildSettingsModal() : ""}
+    <div class="header">
+      <div style="max-width:620px;margin:0 auto">
+        <div class="header-top">
+          <div>
+            <div class="header-eyebrow">MORNING BRIEFING</div>
+            <div class="header-title">☀️ בוקר טוב, ליאור</div>
+            <div class="header-date">${DATE_STR}</div>
+          </div>
+          <button class="btn-settings" id="btn-settings">⚙️ מפתח API</button>
+        </div>
+        ${IS_THURSDAY ? `<div class="thursday-badge">🎉 יום חמישי — כולל המלצות סופ״ש!</div>` : ""}
+        <div class="tabs">
+          ${TABS.map(t => `
+            <button class="tab ${t.cls} ${state.activeTab === t.key ? "active" : ""}" data-tab="${t.key}">
+              ${t.label}
+              ${t.key === "weekend" && IS_THURSDAY ? `<span class="tab-new">חדש</span>` : ""}
+            </button>
+          `).join("")}
+        </div>
+      </div>
+    </div>
+
+    <div class="content">
+      ${buildTabContent(state.activeTab, tab)}
+    </div>
+  `;
+}
+
+function buildTabContent(tabKey, tab) {
+  if (state.loading[tabKey]) return `
+    <div class="loading">
+      <div class="loading-icon">📰</div>
+      <div class="loading-text">טוענת חדשות טריות...</div>
+      <div class="loading-bar"><div class="loading-bar-inner" style="background:${tab.color}"></div></div>
+    </div>`;
+
+  if (state.errors[tabKey]) return `
+    <div class="error-box">
+      <div>${state.errors[tabKey]}</div>
+      <button class="btn-retry" style="background:${tab.color}" data-retry="${tabKey}">נסי שוב</button>
+    </div>`;
+
+  const items = state.cache[tabKey];
+  if (!items) return `
+    <div class="loading">
+      <div class="loading-icon">🔍</div>
+      <div class="loading-text">לחצי טעינה להתחיל</div>
+      <button class="btn-retry" style="background:${tab.color};display:inline-block;margin-top:14px" data-retry="${tabKey}">טעני עכשיו</button>
+    </div>`;
+
+  return `
+    <div class="refresh-row">
+      <button class="btn-refresh" style="border:1.5px solid ${tab.color};color:${tab.color}" data-retry="${tabKey}">🔄 רענן</button>
+    </div>
+    ${items.map((item, i) => buildCard(item, i, tab)).join("")}
+  `;
+}
+
+function buildCard(item, i, tab) {
+  const expKey = `${tab.key}-${i}`;
+  const isOpen = state.expanded[expKey];
+  return `
+    <div class="card">
+      <div class="card-body">
+        <div class="card-top">
+          <span class="card-emoji">${item.emoji || "📌"}</span>
+          <div style="flex:1;min-width:0">
+            <div class="card-meta">
+              <span class="badge" style="background:${tab.color}18;color:${tab.color};border:1px solid ${tab.color}33">${item.category}</span>
+              ${item.distance ? `<span style="font-size:0.68rem;color:#1e8449;font-weight:700">📍 ${item.distance}</span>` : ""}
+            </div>
+            <div class="card-title">${item.title}</div>
+          </div>
+        </div>
+        <div class="card-summary">${item.summary}</div>
+        ${item.address ? `<div class="card-address">📌 ${item.address}</div>` : ""}
+        <div class="card-actions">
+          ${item.url ? `<a class="btn-link" style="color:${tab.color}" href="${item.url}" target="_blank" rel="noopener">קישור ↗</a>` : ""}
+          <button class="btn-expand" 
+            style="background:${isOpen ? tab.color : "#fff"};color:${isOpen ? "#fff" : tab.color};border:1.5px solid ${tab.color}"
+            data-expand="${expKey}">
+            ${isOpen ? "סגור ▲" : "עוד ▼"}
+          </button>
+        </div>
+      </div>
+      ${isOpen ? `<div class="card-details" style="background:${tab.bg}">${item.details}</div>` : ""}
+    </div>`;
+}
+
+function buildSettingsModal() {
+  return `
+    <div class="modal-bg" id="modal-bg">
+      <div class="modal">
+        <h2>🔑 מפתח Anthropic API</h2>
+        <p>המפתח נשמר רק בדפדפן שלך (localStorage) ולא נשלח לשום שרת חיצוני.</p>
+        <input type="password" id="api-key-input" placeholder="sk-ant-api03-..." value="${state.apiKey}" />
+        <div class="modal-btns">
+          <button class="btn-save" id="btn-save-key">שמור והתחל</button>
+          ${state.apiKey ? `<button class="btn-cancel" id="btn-cancel-modal">ביטול</button>` : ""}
+        </div>
+        <div class="modal-note">ניתן ליצור מפתח ב-console.anthropic.com → API Keys</div>
+      </div>
+    </div>`;
+}
+
+// ─── EVENTS ───────────────────────────────────────────────────────────────────
+function attachEvents() {
+  // Tab switch
+  document.querySelectorAll(".tab[data-tab]").forEach(el => {
+    el.addEventListener("click", () => {
+      state.activeTab = el.dataset.tab;
+      if (!state.cache[state.activeTab] && !state.loading[state.activeTab]) {
+        fetchTab(state.activeTab);
+      } else {
+        render();
+      }
+    });
+  });
+
+  // Retry/refresh/load
+  document.querySelectorAll("[data-retry]").forEach(el => {
+    el.addEventListener("click", () => {
+      state.cache[el.dataset.retry] = null;
+      fetchTab(el.dataset.retry);
+    });
+  });
+
+  // Expand
+  document.querySelectorAll("[data-expand]").forEach(el => {
+    el.addEventListener("click", () => {
+      const k = el.dataset.expand;
+      state.expanded[k] = !state.expanded[k];
+      render();
+    });
+  });
+
+  // Settings button
+  const settingsBtn = document.getElementById("btn-settings");
+  if (settingsBtn) settingsBtn.addEventListener("click", () => { state.showSettings = true; render(); });
+
+  // Save key
+  const saveBtn = document.getElementById("btn-save-key");
+  if (saveBtn) saveBtn.addEventListener("click", () => {
+    const val = document.getElementById("api-key-input").value.trim();
+    if (!val) return;
+    state.apiKey = val;
+    localStorage.setItem("mbriefing_key", val);
+    state.showSettings = false;
+    state.cache = {};
+    render();
+    fetchTab(state.activeTab);
+  });
+
+  // Cancel modal
+  const cancelBtn = document.getElementById("btn-cancel-modal");
+  if (cancelBtn) cancelBtn.addEventListener("click", () => { state.showSettings = false; render(); });
+
+  // Click outside modal
+  const modalBg = document.getElementById("modal-bg");
+  if (modalBg) modalBg.addEventListener("click", e => {
+    if (e.target === modalBg && state.apiKey) { state.showSettings = false; render(); }
+  });
+}
+
+// ─── INIT ─────────────────────────────────────────────────────────────────────
+render();
+if (state.apiKey) {
+  fetchTab(state.activeTab);
+} else {
+  state.showSettings = true;
+  render();
+}
+</script>
+</body>
+</html>
