@@ -51,6 +51,7 @@
     padding: 7px 12px;
     font-size: 0.78rem;
     cursor: pointer;
+    white-space: nowrap;
   }
   .thursday-badge {
     display: inline-block;
@@ -71,8 +72,8 @@
   }
   .tab {
     flex: 1;
-    padding: 10px 4px 8px;
-    font-size: 0.76rem;
+    padding: 10px 2px 8px;
+    font-size: 0.7rem;
     font-weight: 700;
     background: transparent;
     color: #6fa3c8;
@@ -82,17 +83,29 @@
     transition: all 0.2s;
     position: relative;
     border-bottom: 3px solid transparent;
+    white-space: nowrap;
   }
   .tab.active { background: #f0f2f8; border-bottom: 3px solid transparent; }
-  .tab.active.canada { color: #c0392b; }
+  .tab.active.canada  { color: #c0392b; }
   .tab.active.toronto { color: #1a5276; }
   .tab.active.weekend { color: #1e8449; }
+  .tab.active.done    { color: #7d3c98; }
   .tab-new {
     display: inline-block;
     background: #e74c3c;
     color: #fff;
     font-size: 0.55rem;
     border-radius: 8px;
+    padding: 1px 5px;
+    margin-right: 3px;
+    vertical-align: middle;
+  }
+  .tab-count {
+    display: inline-block;
+    background: #7d3c98;
+    color: #fff;
+    font-size: 0.55rem;
+    border-radius: 10px;
     padding: 1px 5px;
     margin-right: 3px;
     vertical-align: middle;
@@ -114,6 +127,8 @@
     box-shadow: 0 1px 6px rgba(0,0,0,0.06);
     border: 1px solid rgba(0,0,0,0.05);
   }
+  .card-done { opacity: 0.6; }
+  .card-done-archive { border-right: 3px solid #7d3c98; }
   .card-body { padding: 14px 14px 10px; }
   .card-top { display: flex; gap: 10px; align-items: flex-start; }
   .card-emoji { font-size: 1.5rem; line-height: 1; flex-shrink: 0; }
@@ -121,6 +136,11 @@
   .badge {
     font-size: 0.67rem; font-weight: 700; padding: 2px 9px;
     border-radius: 20px; white-space: nowrap;
+  }
+  .done-badge {
+    font-size: 0.65rem; font-weight: 700; padding: 2px 8px;
+    border-radius: 20px; background: #eafaf1; color: #1e8449;
+    border: 1px solid #1e844933; white-space: nowrap;
   }
   .card-title {
     font-weight: 800; font-size: 0.92rem; color: #111;
@@ -147,10 +167,40 @@
     border-radius: 20px; padding: 3px 13px; cursor: pointer;
     transition: all 0.18s;
   }
+  .btn-done-mark {
+    font-size: 0.73rem; font-weight: 700;
+    border-radius: 20px; padding: 3px 12px; cursor: pointer;
+    background: #eafaf1; color: #1e8449;
+    border: 1.5px solid #1e8449; transition: all 0.18s;
+  }
+  .btn-done-mark:hover { background: #1e8449; color: #fff; }
+  .btn-undone {
+    font-size: 0.73rem; font-weight: 700;
+    border-radius: 20px; padding: 3px 11px; cursor: pointer;
+    background: #f5eef8; color: #7d3c98;
+    border: 1.5px solid #7d3c98;
+  }
   .card-details {
     padding: 12px 14px; font-size: 0.82rem;
     color: #333; direction: rtl; line-height: 1.7;
     border-top: 1px solid rgba(0,0,0,0.05);
+  }
+
+  /* DONE TAB HEADER */
+  .done-section-header {
+    text-align: center;
+    padding: 18px 0 14px;
+  }
+  .done-section-title {
+    font-size: 1.05rem;
+    font-weight: 900;
+    color: #7d3c98;
+    letter-spacing: 0.5px;
+  }
+  .done-section-count {
+    font-size: 0.75rem;
+    color: #999;
+    margin-top: 4px;
   }
 
   /* REFRESH ROW */
@@ -178,7 +228,7 @@
     animation: loadslide 1.4s ease-in-out infinite;
   }
   @keyframes loadslide {
-    0% { margin-right: 100%; }
+    0%   { margin-right: 100%; }
     100% { margin-right: -45%; }
   }
 
@@ -202,17 +252,32 @@
   }
   .modal {
     background: #fff; border-radius: 18px;
-    padding: 24px; width: 100%; max-width: 380px;
-    direction: rtl;
+    width: 100%; max-width: 380px;
+    direction: rtl; overflow: hidden;
+    max-height: 90vh; display: flex; flex-direction: column;
   }
-  .modal h2 { font-size: 1.1rem; margin-bottom: 6px; }
-  .modal p { font-size: 0.8rem; color: #666; margin-bottom: 14px; line-height: 1.5; }
-  .modal input {
+  .modal-tabs-header {
+    display: flex; border-bottom: 1px solid #e8eaf0;
+    background: #f8f9fc; flex-shrink: 0;
+  }
+  .modal-tab-btn {
+    flex: 1; padding: 12px 6px; font-size: 0.76rem; font-weight: 700;
+    background: transparent; border: none; cursor: pointer;
+    color: #888; border-bottom: 2px solid transparent;
+    transition: all 0.2s;
+  }
+  .modal-tab-btn.active { color: #0f3460; border-bottom-color: #0f3460; background: #fff; }
+  .modal-content {
+    padding: 20px; overflow-y: auto;
+  }
+  .modal h2 { font-size: 1.05rem; margin-bottom: 6px; }
+  .modal p  { font-size: 0.8rem; color: #666; margin-bottom: 14px; line-height: 1.5; }
+  .modal input[type="password"] {
     width: 100%; border: 1.5px solid #d0d5e0; border-radius: 10px;
     padding: 10px 12px; font-size: 0.82rem; direction: ltr;
     margin-bottom: 12px; outline: none;
   }
-  .modal input:focus { border-color: #1a5276; }
+  .modal input[type="password"]:focus { border-color: #1a5276; }
   .modal-btns { display: flex; gap: 8px; }
   .btn-save {
     flex: 1; background: #0f3460; color: #fff; border: none;
@@ -227,6 +292,66 @@
   .modal-note {
     font-size: 0.72rem; color: #999; margin-top: 10px; line-height: 1.5;
   }
+
+  /* PROFILE */
+  .profile-label {
+    font-size: 0.72rem; font-weight: 700; color: #888;
+    text-transform: uppercase; letter-spacing: 0.5px;
+    margin-bottom: 10px;
+  }
+  .kid-row {
+    display: flex; align-items: center; gap: 10px;
+    margin-bottom: 8px; padding: 8px 12px;
+    background: #f8f9fc; border-radius: 10px;
+  }
+  .kid-num { font-size: 0.8rem; color: #555; flex: 1; }
+  .kid-age-wrap { display: flex; align-items: center; gap: 8px; }
+  .kid-age-btn {
+    width: 28px; height: 28px; border-radius: 50%;
+    background: #fff; border: 1.5px solid #d0d5e0;
+    font-size: 1rem; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 700; color: #0f3460; line-height: 1;
+  }
+  .kid-age-val {
+    font-size: 1rem; font-weight: 700; color: #111;
+    min-width: 24px; text-align: center;
+  }
+  .btn-remove-kid {
+    background: none; border: none; cursor: pointer;
+    color: #e74c3c; font-size: 1.1rem; font-weight: 700;
+    padding: 2px 4px; line-height: 1;
+  }
+  .btn-add-kid {
+    background: #f0f2f8; border: 1.5px dashed #c0c8d8;
+    color: #1a5276; border-radius: 10px; padding: 8px 14px;
+    font-size: 0.8rem; font-weight: 700; cursor: pointer;
+    width: 100%; margin-top: 2px; text-align: center;
+  }
+  .interests-grid { display: flex; flex-wrap: wrap; gap: 8px; }
+  .interest-chip {
+    padding: 6px 14px; border-radius: 20px;
+    border: 1.5px solid #d0d5e0; font-size: 0.8rem;
+    cursor: pointer; transition: all 0.15s;
+    font-weight: 600; color: #555; user-select: none;
+    background: #fff;
+  }
+  .interest-chip.selected {
+    background: #eafaf1; border-color: #1e8449; color: #1e8449;
+  }
+
+  /* BACKUP */
+  .backup-btns { display: flex; gap: 10px; margin-bottom: 14px; }
+  .btn-import-label {
+    flex: 1; background: #f0f2f8; color: #555; border: none;
+    border-radius: 10px; padding: 10px; font-weight: 700;
+    font-size: 0.85rem; cursor: pointer; text-align: center;
+    display: block;
+  }
+  .backup-info {
+    background: #f8f9fc; border-radius: 10px; padding: 12px;
+    font-size: 0.78rem; color: #666; line-height: 1.9;
+  }
 </style>
 </head>
 <body>
@@ -235,60 +360,116 @@
 
 <script>
 // ─── CONFIG ───────────────────────────────────────────────────────────────────
-const API_URL = "https://api.anthropic.com/v1/messages";
-const MODEL = "claude-sonnet-4-5";
+const API_URL  = "https://api.anthropic.com/v1/messages";
+const MODEL    = "claude-sonnet-4-5";
+const INTERESTS_LIST = ["טבע", "תרבות", "הרפתקאה", "אמנות", "ספורט", "אוכל"];
 
+// ─── TIME ─────────────────────────────────────────────────────────────────────
+const NOW         = new Date();
+const IS_THURSDAY = NOW.getDay() === 4;
+const DATE_STR    = NOW.toLocaleDateString("he-IL", { weekday:"long", year:"numeric", month:"long", day:"numeric" });
+const TIME_STR    = `${String(NOW.getHours()).padStart(2,"0")}:${String(NOW.getMinutes()).padStart(2,"0")}`;
+
+function getTimeWindow() {
+  const yesterday = new Date(NOW);
+  yesterday.setDate(yesterday.getDate() - 1);
+  const yStr      = yesterday.toLocaleDateString("he-IL", { weekday:"long", day:"numeric", month:"long" });
+  const todayStr  = NOW.toLocaleDateString("he-IL", { weekday:"long", day:"numeric", month:"long" });
+  return `${yStr} שעה 12:00 עד ${todayStr} שעה ${TIME_STR}`;
+}
+
+function getWeekendDates() {
+  const day       = NOW.getDay();
+  const daysToSat = (6 - day + 7) % 7 || 7;
+  const sat       = new Date(NOW); sat.setDate(NOW.getDate() + daysToSat);
+  const sun       = new Date(sat); sun.setDate(sat.getDate() + 1);
+  const fmt       = d => d.toLocaleDateString("he-IL", { weekday:"long", day:"numeric", month:"long" });
+  return `${fmt(sat)} — ${fmt(sun)}`;
+}
+
+// ─── TABS ─────────────────────────────────────────────────────────────────────
 const TABS = [
-  { key: "canada",  label: "🍁 קנדה",   cls: "canada",  color: "#c0392b", bg: "#fff5f5" },
-  { key: "toronto", label: "🏙️ טורונטו", cls: "toronto", color: "#1a5276", bg: "#eaf4fb" },
-  { key: "weekend", label: "🎉 סופ״ש",   cls: "weekend", color: "#1e8449", bg: "#eafaf1" },
+  { key:"canada",  label:"🍁 קנדה",    cls:"canada",  color:"#c0392b", bg:"#fff5f5" },
+  { key:"toronto", label:"🏙️ טורונטו", cls:"toronto", color:"#1a5276", bg:"#eaf4fb" },
+  { key:"weekend", label:"🎉 סופ״ש",   cls:"weekend", color:"#1e8449", bg:"#eafaf1" },
+  { key:"done",    label:"✅ ביקרנו",  cls:"done",    color:"#7d3c98", bg:"#f5eef8" },
 ];
 
-const NOW = new Date();
-const IS_THURSDAY = NOW.getDay() === 4;
-const DATE_STR = NOW.toLocaleDateString("he-IL", { weekday:"long", year:"numeric", month:"long", day:"numeric" });
+const DEFAULT_PROFILE = {
+  kids:      [{ age:5 }, { age:9 }],
+  interests: ["טבע", "הרפתקאה", "תרבות"],
+};
 
 // ─── STATE ────────────────────────────────────────────────────────────────────
 let state = {
-  activeTab: "canada",
-  cache: {},
-  loading: {},
-  errors: {},
-  expanded: {},
+  activeTab:    "canada",
+  cache:        {},
+  loading:      {},
+  errors:       {},
+  expanded:     {},
   showSettings: false,
-  apiKey: localStorage.getItem("mbriefing_key") || "",
+  settingsTab:  "key",
+  apiKey:  localStorage.getItem("mbriefing_key") || "",
+  profile: JSON.parse(localStorage.getItem("mbriefing_profile") || JSON.stringify(DEFAULT_PROFILE)),
+  done:    JSON.parse(localStorage.getItem("mbriefing_done")    || "[]"),
 };
+
+// ─── PROFILE HELPERS ──────────────────────────────────────────────────────────
+function saveProfile() {
+  localStorage.setItem("mbriefing_profile", JSON.stringify(state.profile));
+}
+
+function kidsDesc() {
+  if (!state.profile.kids.length) return "ללא ילדים";
+  return `${state.profile.kids.length} ילדים, גילאים: ${state.profile.kids.map(k => k.age).join(", ")}`;
+}
+
+function interestsDesc() {
+  return state.profile.interests.length ? state.profile.interests.join(", ") : "כללי";
+}
 
 // ─── PROMPTS ─────────────────────────────────────────────────────────────────
 function getPrompt(tab) {
-  if (tab === "canada") return `Today is ${DATE_STR} in Toronto, Canada.
-Return ONLY a raw JSON array of exactly 5 news items about Canada (national level) — politics, news, culture, viral/popular from the past 48 hours.
-Each item must have: title (Hebrew headline ≤12 words), summary (2-3 Hebrew sentences), details (4-5 Hebrew sentences with more context), category (one of: פוליטיקה|חדשות|תרבות|ויראלי), emoji (1 emoji), url (source URL or empty string).
+  const win = getTimeWindow();
+
+  if (tab === "canada") return `Today is ${DATE_STR} in Toronto, Canada (app opened at ${TIME_STR}).
+Return ONLY a raw JSON array of exactly 5 Canada national news items — politics, news, culture, viral/popular.
+IMPORTANT: Only include news that occurred within this window: ${win}. Exclude anything older.
+Each item: title (Hebrew ≤12 words), summary (2-3 Hebrew sentences), details (4-5 Hebrew sentences), category (פוליטיקה|חדשות|תרבות|ויראלי), emoji, url (source URL or "").
 Return ONLY the JSON array, no markdown, no backticks.`;
 
-  if (tab === "toronto") return `Today is ${DATE_STR} in Toronto, Canada.
-Return ONLY a raw JSON array of exactly 5 news items specifically about Toronto — local politics, city news, culture, viral topics from the past 48 hours.
-Each item must have: title (Hebrew headline ≤12 words), summary (2-3 Hebrew sentences), details (4-5 Hebrew sentences with more context), category (one of: פוליטיקה|חדשות|תרבות|ויראלי), emoji (1 emoji), url (source URL or empty string).
+  if (tab === "toronto") return `Today is ${DATE_STR} in Toronto, Canada (app opened at ${TIME_STR}).
+Return ONLY a raw JSON array of exactly 5 Toronto-specific news items — local politics, city news, culture, viral.
+IMPORTANT: Only include news that occurred within this window: ${win}. Exclude anything older.
+Each item: title (Hebrew ≤12 words), summary (2-3 Hebrew sentences), details (4-5 Hebrew sentences), category (פוליטיקה|חדשות|תרבות|ויראלי), emoji, url (source URL or "").
 Return ONLY the JSON array, no markdown, no backticks.`;
 
-  if (tab === "weekend") return `Today is ${DATE_STR} in Toronto, Canada.
-Return ONLY a raw JSON array of exactly 6 weekend activity recommendations for a family with children ages 5 and 9, based in North York / Toronto. Max 2hr drive, prefer under 1hr. Mix outdoor/indoor, seasonal activities preferred.
-Each item must have: title (activity name in Hebrew), summary (2-3 Hebrew sentences describing it), details (4-5 Hebrew sentences with hours, cost, tips), category (one of: טבע|תרבות|הרפתקאה|אמנות|ספורט|אוכל), emoji (1 emoji), distance (e.g. ~30 דקות נסיעה), address (full English address), url (website or empty string).
+  if (tab === "weekend") {
+    const wknd = getWeekendDates();
+    return `Today is ${DATE_STR} in Toronto, Canada.
+Family: ${kidsDesc()}. Weekend interests: ${interestsDesc()}.
+Return ONLY a raw JSON array of exactly 6 weekend activity recommendations for this family. Base: North York / Toronto. Max 2hr drive.
+IMPORTANT: Prioritize real festivals and events happening specifically on ${wknd}. Tailor suggestions to the kids' ages and the family's interests.
+Each item: title (Hebrew), summary (2-3 Hebrew sentences), details (4-5 Hebrew sentences with hours, cost, tips for that specific weekend), category (טבע|תרבות|הרפתקאה|אמנות|ספורט|אוכל), emoji, distance (~X דקות נסיעה), address (full English address), url (website or "").
 Return ONLY the JSON array, no markdown, no backticks.`;
+  }
 }
 
 // ─── API CALL ─────────────────────────────────────────────────────────────────
 async function fetchTab(tab) {
+  if (tab === "done") return;
   const key = state.apiKey;
-  if (!key) { state.showSettings = true; render(); return; }
+  if (!key) { state.showSettings = true; state.settingsTab = "key"; render(); return; }
 
   state.loading[tab] = true;
-  state.errors[tab] = null;
+  state.errors[tab]  = null;
   render();
 
   try {
     const res = await fetch(API_URL, {
       method: "POST",
+      mode: "cors",
+      credentials: "omit",
       headers: {
         "Content-Type": "application/json",
         "x-api-key": key,
@@ -296,27 +477,83 @@ async function fetchTab(tab) {
         "anthropic-dangerous-direct-browser-access": "true",
       },
       body: JSON.stringify({
-        model: MODEL,
-        max_tokens: 4000,
-        messages: [{ role: "user", content: getPrompt(tab) }]
-      })
+        model: MODEL, max_tokens: 4000,
+        messages: [{ role:"user", content: getPrompt(tab) }],
+      }),
     });
 
-    const data = await res.json();
-    if (data.error) throw new Error(data.error.message);
+    let data;
+    try { data = await res.json(); }
+    catch { throw new Error(`HTTP ${res.status} — תגובה לא תקינה מהשרת`); }
 
-    const text = (data.content || []).filter(b => b.type === "text").map(b => b.text).join("");
+    if (data.error) throw new Error(data.error.message);
+    if (!res.ok)    throw new Error(`HTTP ${res.status}`);
+
+    const text  = (data.content || []).filter(b => b.type === "text").map(b => b.text).join("");
     const clean = text.replace(/```json|```/g, "").trim();
-    const parsed = JSON.parse(clean);
-    state.cache[tab] = parsed;
+    try { state.cache[tab] = JSON.parse(clean); }
+    catch { throw new Error("שגיאה בניתוח התשובה מ-Claude"); }
   } catch(e) {
-    state.errors[tab] = e.message.includes("api_key") || e.message.includes("auth")
-      ? "מפתח API שגוי. בדקי בהגדרות."
-      : "שגיאה בטעינה. נסי שוב.";
+    const msg = e?.message || String(e);
+    if (msg.includes("api_key") || msg.includes("auth") || msg.includes("401")) {
+      state.errors[tab] = "מפתח API שגוי. בדקי בהגדרות.";
+    } else {
+      state.errors[tab] = msg;
+    }
   } finally {
     state.loading[tab] = false;
     render();
   }
+}
+
+// ─── DONE ─────────────────────────────────────────────────────────────────────
+function markDone(tabKey, idx) {
+  const item = state.cache[tabKey][idx];
+  state.done = state.done.filter(d => d.title !== item.title);
+  state.done.unshift({ ...item, _doneAt: new Date().toISOString() });
+  localStorage.setItem("mbriefing_done", JSON.stringify(state.done));
+  render();
+}
+
+function unmarkDone(idx) {
+  state.done.splice(idx, 1);
+  localStorage.setItem("mbriefing_done", JSON.stringify(state.done));
+  render();
+}
+
+const isDone = title => state.done.some(d => d.title === title);
+
+// ─── BACKUP ───────────────────────────────────────────────────────────────────
+function exportBackup() {
+  const payload = {
+    version:  1,
+    exported: new Date().toISOString(),
+    apiKey:   state.apiKey,
+    profile:  state.profile,
+    done:     state.done,
+  };
+  const blob = new Blob([JSON.stringify(payload, null, 2)], { type:"application/json" });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement("a");
+  a.href     = url;
+  a.download = `morning-brief-${new Date().toISOString().slice(0,10)}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function importBackup(file) {
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const data = JSON.parse(e.target.result);
+      if (data.apiKey)  { state.apiKey  = data.apiKey;  localStorage.setItem("mbriefing_key",     data.apiKey); }
+      if (data.profile) { state.profile = data.profile; saveProfile(); }
+      if (data.done)    { state.done    = data.done;    localStorage.setItem("mbriefing_done", JSON.stringify(data.done)); }
+      state.showSettings = false;
+      render();
+    } catch { alert("קובץ גיבוי לא תקין"); }
+  };
+  reader.readAsText(file);
 }
 
 // ─── RENDER ───────────────────────────────────────────────────────────────────
@@ -337,27 +574,28 @@ function buildHTML() {
             <div class="header-title">☀️ בוקר טוב, ליאור</div>
             <div class="header-date">${DATE_STR}</div>
           </div>
-          <button class="btn-settings" id="btn-settings">⚙️ מפתח API</button>
+          <button class="btn-settings" id="btn-settings">⚙️ הגדרות</button>
         </div>
         ${IS_THURSDAY ? `<div class="thursday-badge">🎉 יום חמישי — כולל המלצות סופ״ש!</div>` : ""}
         <div class="tabs">
           ${TABS.map(t => `
-            <button class="tab ${t.cls} ${state.activeTab === t.key ? "active" : ""}" data-tab="${t.key}">
+            <button class="tab ${t.cls}${state.activeTab === t.key ? " active" : ""}" data-tab="${t.key}">
               ${t.label}
               ${t.key === "weekend" && IS_THURSDAY ? `<span class="tab-new">חדש</span>` : ""}
+              ${t.key === "done" && state.done.length ? `<span class="tab-count">${state.done.length}</span>` : ""}
             </button>
           `).join("")}
         </div>
       </div>
     </div>
-
     <div class="content">
       ${buildTabContent(state.activeTab, tab)}
-    </div>
-  `;
+    </div>`;
 }
 
 function buildTabContent(tabKey, tab) {
+  if (tabKey === "done") return buildDoneContent(tab);
+
   if (state.loading[tabKey]) return `
     <div class="loading">
       <div class="loading-icon">📰</div>
@@ -367,7 +605,8 @@ function buildTabContent(tabKey, tab) {
 
   if (state.errors[tabKey]) return `
     <div class="error-box">
-      <div>${state.errors[tabKey]}</div>
+      <div>שגיאה בטעינה</div>
+      <div style="font-size:0.75rem;margin-top:6px;opacity:0.75;word-break:break-all;direction:ltr;text-align:left">${state.errors[tabKey]}</div>
       <button class="btn-retry" style="background:${tab.color}" data-retry="${tabKey}">נסי שוב</button>
     </div>`;
 
@@ -383,15 +622,30 @@ function buildTabContent(tabKey, tab) {
     <div class="refresh-row">
       <button class="btn-refresh" style="border:1.5px solid ${tab.color};color:${tab.color}" data-retry="${tabKey}">🔄 רענן</button>
     </div>
-    ${items.map((item, i) => buildCard(item, i, tab)).join("")}
-  `;
+    ${items.map((item, i) => buildCard(item, i, tab, tabKey === "weekend")).join("")}`;
 }
 
-function buildCard(item, i, tab) {
+function buildDoneContent(tab) {
+  if (!state.done.length) return `
+    <div class="loading">
+      <div class="loading-icon">🗺️</div>
+      <div class="loading-text">עדיין לא סימנת פעילויות שביצעת</div>
+    </div>`;
+
+  return `
+    <div class="done-section-header">
+      <div class="done-section-title">Been There Done That</div>
+      <div class="done-section-count">${state.done.length} פעילות שביצעת</div>
+    </div>
+    ${state.done.map((item, i) => buildDoneCard(item, i, tab)).join("")}`;
+}
+
+function buildCard(item, i, tab, isWeekend) {
   const expKey = `${tab.key}-${i}`;
   const isOpen = state.expanded[expKey];
+  const done   = isDone(item.title);
   return `
-    <div class="card">
+    <div class="card${done ? " card-done" : ""}">
       <div class="card-body">
         <div class="card-top">
           <span class="card-emoji">${item.emoji || "📌"}</span>
@@ -399,6 +653,7 @@ function buildCard(item, i, tab) {
             <div class="card-meta">
               <span class="badge" style="background:${tab.color}18;color:${tab.color};border:1px solid ${tab.color}33">${item.category}</span>
               ${item.distance ? `<span style="font-size:0.68rem;color:#1e8449;font-weight:700">📍 ${item.distance}</span>` : ""}
+              ${done ? `<span class="done-badge">✓ ביקרנו</span>` : ""}
             </div>
             <div class="card-title">${item.title}</div>
           </div>
@@ -407,7 +662,8 @@ function buildCard(item, i, tab) {
         ${item.address ? `<div class="card-address">📌 ${item.address}</div>` : ""}
         <div class="card-actions">
           ${item.url ? `<a class="btn-link" style="color:${tab.color}" href="${item.url}" target="_blank" rel="noopener">קישור ↗</a>` : ""}
-          <button class="btn-expand" 
+          ${isWeekend && !done ? `<button class="btn-done-mark" data-done-tab="${tab.key}" data-done-idx="${i}">✓ ביקרנו</button>` : ""}
+          <button class="btn-expand"
             style="background:${isOpen ? tab.color : "#fff"};color:${isOpen ? "#fff" : tab.color};border:1.5px solid ${tab.color}"
             data-expand="${expKey}">
             ${isOpen ? "סגור ▲" : "עוד ▼"}
@@ -418,20 +674,122 @@ function buildCard(item, i, tab) {
     </div>`;
 }
 
+function buildDoneCard(item, i, tab) {
+  const expKey   = `done-${i}`;
+  const isOpen   = state.expanded[expKey];
+  const doneDate = item._doneAt
+    ? new Date(item._doneAt).toLocaleDateString("he-IL", { day:"numeric", month:"long", year:"numeric" })
+    : "";
+  return `
+    <div class="card card-done-archive">
+      <div class="card-body">
+        <div class="card-top">
+          <span class="card-emoji">${item.emoji || "📌"}</span>
+          <div style="flex:1;min-width:0">
+            <div class="card-meta">
+              <span class="badge" style="background:${tab.color}18;color:${tab.color};border:1px solid ${tab.color}33">${item.category || ""}</span>
+              ${item.distance ? `<span style="font-size:0.68rem;color:#1e8449;font-weight:700">📍 ${item.distance}</span>` : ""}
+            </div>
+            <div class="card-title">${item.title}</div>
+            ${doneDate ? `<div style="font-size:0.68rem;color:#7d3c98;margin-top:3px;font-weight:600">✓ ${doneDate}</div>` : ""}
+          </div>
+        </div>
+        <div class="card-summary">${item.summary}</div>
+        ${item.address ? `<div class="card-address">📌 ${item.address}</div>` : ""}
+        <div class="card-actions">
+          ${item.url ? `<a class="btn-link" style="color:${tab.color}" href="${item.url}" target="_blank" rel="noopener">קישור ↗</a>` : ""}
+          <button class="btn-undone" data-undone-idx="${i}">↩ הסר</button>
+          <button class="btn-expand"
+            style="background:${isOpen ? tab.color : "#fff"};color:${isOpen ? "#fff" : tab.color};border:1.5px solid ${tab.color}"
+            data-expand="${expKey}">
+            ${isOpen ? "סגור ▲" : "עוד ▼"}
+          </button>
+        </div>
+      </div>
+      ${isOpen ? `<div class="card-details" style="background:${tab.bg}">${item.details}</div>` : ""}
+    </div>`;
+}
+
+// ─── SETTINGS MODAL ───────────────────────────────────────────────────────────
 function buildSettingsModal() {
   return `
     <div class="modal-bg" id="modal-bg">
       <div class="modal">
-        <h2>🔑 מפתח Anthropic API</h2>
-        <p>המפתח נשמר רק בדפדפן שלך (localStorage) ולא נשלח לשום שרת חיצוני.</p>
-        <input type="password" id="api-key-input" placeholder="sk-ant-api03-..." value="${state.apiKey}" />
-        <div class="modal-btns">
-          <button class="btn-save" id="btn-save-key">שמור והתחל</button>
-          ${state.apiKey ? `<button class="btn-cancel" id="btn-cancel-modal">ביטול</button>` : ""}
+        <div class="modal-tabs-header">
+          <button class="modal-tab-btn${state.settingsTab === "key"     ? " active" : ""}" data-stab="key">🔑 API</button>
+          <button class="modal-tab-btn${state.settingsTab === "profile" ? " active" : ""}" data-stab="profile">👨‍👩‍👧 פרופיל</button>
+          <button class="modal-tab-btn${state.settingsTab === "backup"  ? " active" : ""}" data-stab="backup">💾 גיבוי</button>
         </div>
-        <div class="modal-note">ניתן ליצור מפתח ב-console.anthropic.com → API Keys</div>
+        <div class="modal-content">
+          ${state.settingsTab === "key"     ? buildKeyTab()     : ""}
+          ${state.settingsTab === "profile" ? buildProfileTab() : ""}
+          ${state.settingsTab === "backup"  ? buildBackupTab()  : ""}
+        </div>
       </div>
     </div>`;
+}
+
+function buildKeyTab() {
+  return `
+    <h2>🔑 מפתח Anthropic API</h2>
+    <p>המפתח נשמר רק בדפדפן שלך (localStorage) ולא נשלח לשום שרת חיצוני.</p>
+    <input type="password" id="api-key-input" placeholder="sk-ant-api03-..." value="${state.apiKey}" />
+    <div class="modal-btns">
+      <button class="btn-save" id="btn-save-key">שמור והתחל</button>
+      ${state.apiKey ? `<button class="btn-cancel" id="btn-cancel-modal">ביטול</button>` : ""}
+    </div>
+    <div class="modal-note">ניתן ליצור מפתח ב-console.anthropic.com → API Keys</div>`;
+}
+
+function buildProfileTab() {
+  const kids = state.profile.kids;
+  return `
+    <h2>👨‍👩‍👧 פרופיל משפחתי</h2>
+    <p>הגדרות הפרופיל משפיעות על המלצות הסופ״ש ונשמרות אוטומטית.</p>
+
+    <div class="profile-label">ילדים</div>
+    ${kids.map((kid, i) => `
+      <div class="kid-row">
+        <span class="kid-num">ילד ${i + 1}</span>
+        <div class="kid-age-wrap">
+          <button class="kid-age-btn" data-kid="${i}" data-dir="-1">−</button>
+          <span class="kid-age-val" data-kid="${i}">${kid.age}</span>
+          <button class="kid-age-btn" data-kid="${i}" data-dir="1">+</button>
+        </div>
+        <button class="btn-remove-kid" data-kid="${i}">×</button>
+      </div>
+    `).join("")}
+    <button class="btn-add-kid" id="btn-add-kid">+ הוסף ילד</button>
+
+    <div class="profile-label" style="margin-top:18px">תחומי עניין לסופ״ש</div>
+    <div class="interests-grid">
+      ${INTERESTS_LIST.map(v => `
+        <span class="interest-chip${state.profile.interests.includes(v) ? " selected" : ""}" data-interest="${v}">${v}</span>
+      `).join("")}
+    </div>
+
+    <div class="modal-btns" style="margin-top:18px">
+      ${state.apiKey ? `<button class="btn-cancel" id="btn-cancel-modal">סגור</button>` : ""}
+    </div>`;
+}
+
+function buildBackupTab() {
+  return `
+    <h2>💾 גיבוי ושחזור</h2>
+    <p>הגיבוי כולל: מפתח API, פרופיל משפחתי ופעילויות שביצעת.</p>
+    <div class="backup-btns">
+      <button class="btn-save" id="btn-export">⬇️ ייצוא</button>
+      <label class="btn-import-label">
+        📂 ייבוא
+        <input type="file" id="import-file" accept=".json" style="display:none">
+      </label>
+    </div>
+    <div class="backup-info">
+      <div>ילדים: ${kidsDesc()}</div>
+      <div>תחומי עניין: ${interestsDesc()}</div>
+      <div>פעילויות שביצעת: <strong>${state.done.length}</strong></div>
+    </div>
+    ${state.apiKey ? `<div class="modal-btns" style="margin-top:14px"><button class="btn-cancel" id="btn-cancel-modal">סגור</button></div>` : ""}`;
 }
 
 // ─── EVENTS ───────────────────────────────────────────────────────────────────
@@ -439,39 +797,45 @@ function attachEvents() {
   // Tab switch
   document.querySelectorAll(".tab[data-tab]").forEach(el => {
     el.addEventListener("click", () => {
-      state.activeTab = el.dataset.tab;
-      if (!state.cache[state.activeTab] && !state.loading[state.activeTab]) {
-        fetchTab(state.activeTab);
-      } else {
-        render();
-      }
+      const key = el.dataset.tab;
+      state.activeTab = key;
+      if (key !== "done" && !state.cache[key] && !state.loading[key]) fetchTab(key);
+      else render();
     });
   });
 
-  // Retry/refresh/load
+  // Retry / refresh / load
   document.querySelectorAll("[data-retry]").forEach(el => {
-    el.addEventListener("click", () => {
-      state.cache[el.dataset.retry] = null;
-      fetchTab(el.dataset.retry);
-    });
+    el.addEventListener("click", () => { state.cache[el.dataset.retry] = null; fetchTab(el.dataset.retry); });
   });
 
-  // Expand
+  // Expand / collapse
   document.querySelectorAll("[data-expand]").forEach(el => {
-    el.addEventListener("click", () => {
-      const k = el.dataset.expand;
-      state.expanded[k] = !state.expanded[k];
-      render();
-    });
+    el.addEventListener("click", () => { const k = el.dataset.expand; state.expanded[k] = !state.expanded[k]; render(); });
   });
 
-  // Settings button
+  // Mark done
+  document.querySelectorAll("[data-done-tab]").forEach(el => {
+    el.addEventListener("click", () => markDone(el.dataset.doneTab, parseInt(el.dataset.doneIdx)));
+  });
+
+  // Unmark done
+  document.querySelectorAll("[data-undone-idx]").forEach(el => {
+    el.addEventListener("click", () => unmarkDone(parseInt(el.dataset.undoneIdx)));
+  });
+
+  // Open settings
   const settingsBtn = document.getElementById("btn-settings");
   if (settingsBtn) settingsBtn.addEventListener("click", () => { state.showSettings = true; render(); });
 
-  // Save key
-  const saveBtn = document.getElementById("btn-save-key");
-  if (saveBtn) saveBtn.addEventListener("click", () => {
+  // Settings modal tab switch
+  document.querySelectorAll("[data-stab]").forEach(el => {
+    el.addEventListener("click", () => { state.settingsTab = el.dataset.stab; render(); });
+  });
+
+  // Save API key
+  const saveKeyBtn = document.getElementById("btn-save-key");
+  if (saveKeyBtn) saveKeyBtn.addEventListener("click", () => {
     const val = document.getElementById("api-key-input").value.trim();
     if (!val) return;
     state.apiKey = val;
@@ -482,7 +846,7 @@ function attachEvents() {
     fetchTab(state.activeTab);
   });
 
-  // Cancel modal
+  // Close modal
   const cancelBtn = document.getElementById("btn-cancel-modal");
   if (cancelBtn) cancelBtn.addEventListener("click", () => { state.showSettings = false; render(); });
 
@@ -491,6 +855,55 @@ function attachEvents() {
   if (modalBg) modalBg.addEventListener("click", e => {
     if (e.target === modalBg && state.apiKey) { state.showSettings = false; render(); }
   });
+
+  // Add kid (auto-saves)
+  const addKidBtn = document.getElementById("btn-add-kid");
+  if (addKidBtn) addKidBtn.addEventListener("click", () => {
+    state.profile.kids.push({ age: 5 });
+    saveProfile();
+    render();
+  });
+
+  // Remove kid (auto-saves)
+  document.querySelectorAll(".btn-remove-kid").forEach(el => {
+    el.addEventListener("click", () => {
+      state.profile.kids.splice(parseInt(el.dataset.kid), 1);
+      saveProfile();
+      render();
+    });
+  });
+
+  // Kid age stepper — updates state + DOM directly, no full re-render
+  document.querySelectorAll(".kid-age-btn").forEach(el => {
+    el.addEventListener("click", () => {
+      const i      = parseInt(el.dataset.kid);
+      const newAge = Math.max(0, Math.min(18, state.profile.kids[i].age + parseInt(el.dataset.dir)));
+      state.profile.kids[i].age = newAge;
+      saveProfile();
+      const valEl = document.querySelector(`.kid-age-val[data-kid="${i}"]`);
+      if (valEl) valEl.textContent = newAge;
+    });
+  });
+
+  // Interest chip toggle (auto-saves)
+  document.querySelectorAll(".interest-chip").forEach(chip => {
+    chip.addEventListener("click", () => {
+      const v = chip.dataset.interest;
+      chip.classList.toggle("selected");
+      const idx = state.profile.interests.indexOf(v);
+      if (idx === -1) state.profile.interests.push(v);
+      else state.profile.interests.splice(idx, 1);
+      saveProfile();
+    });
+  });
+
+  // Export backup
+  const exportBtn = document.getElementById("btn-export");
+  if (exportBtn) exportBtn.addEventListener("click", exportBackup);
+
+  // Import backup
+  const importFile = document.getElementById("import-file");
+  if (importFile) importFile.addEventListener("change", e => { if (e.target.files[0]) importBackup(e.target.files[0]); });
 }
 
 // ─── INIT ─────────────────────────────────────────────────────────────────────
