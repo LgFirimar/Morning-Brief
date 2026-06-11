@@ -475,8 +475,6 @@ async function fetchTab(tab) {
   try {
     const res = await fetch(API_URL, {
       method: "POST",
-      mode: "cors",
-      credentials: "omit",
       headers: {
         "Content-Type":      "application/json",
         "x-api-key":         key,
@@ -500,16 +498,12 @@ async function fetchTab(tab) {
     try { state.cache[tab] = JSON.parse(clean); }
     catch { throw new Error("שגיאה בניתוח התשובה מ-Claude"); }
   } catch(e) {
-    const msg = e?.message || "";
+    const msg  = e?.message || "";
+    const name = e?.name    || "Error";
     if (msg.includes("api_key") || msg.includes("auth") || msg.includes("401")) {
       state.errors[tab] = "מפתח API שגוי. בדקי בהגדרות.";
-    } else if (!msg || e?.name === "TypeError") {
-      const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
-      state.errors[tab] = isIOS
-        ? "iOS Safari is blocking the request. Try: Settings → Safari → turn off 'Prevent Cross-Site Tracking'. Or open on desktop."
-        : "שגיאת רשת. ודאי שאת פותחת: lgfirimar.github.io/Morning-Brief";
     } else {
-      state.errors[tab] = msg;
+      state.errors[tab] = `${name}: "${msg || "no message"}" — endpoint: ${API_URL}`;
     }
   } finally {
     state.loading[tab] = false;
