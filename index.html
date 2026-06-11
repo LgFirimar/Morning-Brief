@@ -360,7 +360,7 @@
 
 <script>
 // ─── CONFIG ───────────────────────────────────────────────────────────────────
-const API_URL  = "https://api.anthropic.com/v1/messages";
+const API_URL  = "https://morning-brief-proxy.lior0gal.workers.dev";
 const MODEL    = "claude-sonnet-4-6";
 const INTERESTS_LIST = ["טבע", "תרבות", "הרפתקאה", "אמנות", "ספורט", "אוכל"];
 
@@ -409,8 +409,7 @@ let state = {
   expanded:     {},
   showSettings: false,
   settingsTab:  "key",
-  apiKey:   localStorage.getItem("mbriefing_key")   || "",
-  proxyUrl: localStorage.getItem("mbriefing_proxy") || "",
+  apiKey: localStorage.getItem("mbriefing_key") || "",
   profile:  JSON.parse(localStorage.getItem("mbriefing_profile") || JSON.stringify(DEFAULT_PROFILE)),
   done:     JSON.parse(localStorage.getItem("mbriefing_done")    || "[]"),
 };
@@ -474,19 +473,15 @@ async function fetchTab(tab) {
   render();
 
   try {
-    const endpoint = state.proxyUrl || API_URL;
-    const headers  = {
-      "Content-Type":    "application/json",
-      "x-api-key":       key,
-      "anthropic-version": "2023-06-01",
-    };
-    if (!state.proxyUrl) headers["anthropic-dangerous-direct-browser-access"] = "true";
-
-    const res = await fetch(endpoint, {
+    const res = await fetch(API_URL, {
       method: "POST",
       mode: "cors",
       credentials: "omit",
-      headers,
+      headers: {
+        "Content-Type":      "application/json",
+        "x-api-key":         key,
+        "anthropic-version": "2023-06-01",
+      },
       body: JSON.stringify({
         model: MODEL, max_tokens: 4000,
         messages: [{ role:"user", content: getPrompt(tab) }],
@@ -545,7 +540,6 @@ function exportBackup() {
     version:  1,
     exported: new Date().toISOString(),
     apiKey:   state.apiKey,
-    proxyUrl: state.proxyUrl,
     profile:  state.profile,
     done:     state.done,
   };
@@ -563,10 +557,9 @@ function importBackup(file) {
   reader.onload = e => {
     try {
       const data = JSON.parse(e.target.result);
-      if (data.apiKey)   { state.apiKey   = data.apiKey;   localStorage.setItem("mbriefing_key",   data.apiKey); }
-      if (data.proxyUrl !== undefined) { state.proxyUrl = data.proxyUrl; localStorage.setItem("mbriefing_proxy", data.proxyUrl); }
-      if (data.profile)  { state.profile  = data.profile;  saveProfile(); }
-      if (data.done)     { state.done     = data.done;     localStorage.setItem("mbriefing_done", JSON.stringify(data.done)); }
+      if (data.apiKey)  { state.apiKey  = data.apiKey;  localStorage.setItem("mbriefing_key", data.apiKey); }
+      if (data.profile) { state.profile = data.profile; saveProfile(); }
+      if (data.done)    { state.done    = data.done;    localStorage.setItem("mbriefing_done", JSON.stringify(data.done)); }
       state.showSettings = false;
       render();
     } catch { alert("קובץ גיבוי לא תקין"); }
@@ -752,15 +745,11 @@ function buildKeyTab() {
     <h2>🔑 Anthropic API Key</h2>
     <p style="direction:ltr;text-align:left">Stored only in your browser's localStorage.</p>
     <input type="password" id="api-key-input" placeholder="sk-ant-api03-..." value="${state.apiKey}" />
-
-    <div class="profile-label" style="margin-top:14px">Proxy URL <span style="font-weight:400;text-transform:none;letter-spacing:0">(optional — fixes iOS Safari)</span></div>
-    <input type="password" id="proxy-url-input" placeholder="https://morning-brief.your-name.workers.dev" value="${state.proxyUrl}" />
-    <div class="modal-note" style="direction:ltr;text-align:left">Deploy <code>worker.js</code> on Cloudflare Workers, then paste the URL here. Leave empty on desktop.</div>
-
     <div class="modal-btns" style="margin-top:14px">
       <button class="btn-save" id="btn-save-key">Save &amp; Start</button>
       ${state.apiKey ? `<button class="btn-cancel" id="btn-cancel-modal">Cancel</button>` : ""}
-    </div>`;
+    </div>
+    <div class="modal-note" style="direction:ltr;text-align:left">Get a key at console.anthropic.com → API Keys</div>`;
 }
 
 function buildProfileTab() {
@@ -858,13 +847,10 @@ function attachEvents() {
   // Save API key
   const saveKeyBtn = document.getElementById("btn-save-key");
   if (saveKeyBtn) saveKeyBtn.addEventListener("click", () => {
-    const val   = document.getElementById("api-key-input").value.trim();
-    const proxy = document.getElementById("proxy-url-input").value.trim();
+    const val = document.getElementById("api-key-input").value.trim();
     if (!val) return;
-    state.apiKey   = val;
-    state.proxyUrl = proxy;
-    localStorage.setItem("mbriefing_key",   val);
-    localStorage.setItem("mbriefing_proxy", proxy);
+    state.apiKey = val;
+    localStorage.setItem("mbriefing_key", val);
     state.showSettings = false;
     state.cache = {};
     render();
