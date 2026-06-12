@@ -497,14 +497,8 @@ async function fetchTab(tab) {
     if (!parsed) throw new Error("שגיאה בניתוח התשובה מ-Claude: " + text.slice(0, 80));
     state.cache[tab] = parsed;
   } catch(e) {
-    const msg   = e?.message || "";
-    const name  = e?.name    || "Error";
-    const stack = (e?.stack  || "").replace(/\n/g," ").slice(0,200);
-    if (msg.includes("api_key") || msg.includes("auth") || msg.includes("401")) {
-      state.errors[tab] = "מפתח API שגוי. בדקי בהגדרות.";
-    } else {
-      state.errors[tab] = `${name}: "${msg||"no msg"}" | ${stack||"no stack"}`;
-    }
+    const msg = e?.message || "";
+    state.errors[tab] = msg || "שגיאה בטעינה. נסי שוב.";
   } finally {
     state.loading[tab] = false;
     render();
@@ -608,13 +602,8 @@ function buildTabContent(tabKey, tab) {
 
   if (state.errors[tabKey]) return `
     <div class="error-box">
-      <div>שגיאה בטעינה</div>
-      <div style="font-size:0.75rem;margin-top:6px;opacity:0.75;word-break:break-all;direction:ltr;text-align:left">${state.errors[tabKey]}</div>
+      <div>${state.errors[tabKey]}</div>
       <button class="btn-retry" style="background:${tab.color}" data-retry="${tabKey}">נסי שוב</button>
-      <div style="margin-top:10px">
-        <button onclick="testConnection()" style="background:#555;color:#fff;border:none;border-radius:8px;padding:6px 14px;font-size:0.75rem;cursor:pointer">🔌 Test Connection</button>
-        <div id="test-out" style="font-size:0.72rem;margin-top:6px;direction:ltr;text-align:left;word-break:break-all"></div>
-      </div>
     </div>`;
 
   const items = state.cache[tabKey];
@@ -901,32 +890,6 @@ function attachEvents() {
   // Import backup
   const importFile = document.getElementById("import-file");
   if (importFile) importFile.addEventListener("change", e => { if (e.target.files[0]) importBackup(e.target.files[0]); });
-}
-
-// ─── CONNECTION TEST ──────────────────────────────────────────────────────────
-function testConnection() {
-  const out = document.getElementById("test-out");
-  out.textContent = "Testing /test...";
-  const x1 = new XMLHttpRequest();
-  x1.open("POST", API_URL + "/test");
-  x1.setRequestHeader("Content-Type", "application/json");
-  x1.timeout = 10000;
-  x1.onload  = () => {
-    out.textContent = "✓ /test ok. Now testing root...";
-    const x2 = new XMLHttpRequest();
-    x2.open("POST", API_URL);
-    x2.setRequestHeader("Content-Type", "application/json");
-    x2.timeout = 10000;
-    x2.onload  = () => out.textContent = "✓ root ok (status " + x2.status + "). Now try נסי שוב.";
-    x2.onerror = () => out.textContent = "✗ root XHR error";
-    x2.ontimeout = () => out.textContent = "✗ root timeout";
-    try { x2.send(JSON.stringify({ test: true })); }
-    catch(e) { out.textContent = "✗ root exception: " + e.name + ": " + e.message; }
-  };
-  x1.onerror = () => out.textContent = "✗ /test XHR error";
-  x1.ontimeout = () => out.textContent = "✗ /test timeout";
-  try { x1.send(JSON.stringify({ test: true })); }
-  catch(e) { out.textContent = "✗ /test exception: " + e.name + ": " + e.message; }
 }
 
 // ─── INIT ─────────────────────────────────────────────────────────────────────
