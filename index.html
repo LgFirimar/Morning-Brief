@@ -435,22 +435,22 @@ function interestsDesc() {
 // ─── PROMPTS ─────────────────────────────────────────────────────────────────
 function getPrompt(tab) {
   if (tab === "canada") return `Today is ${DATE_STR} in Toronto, Canada.
-You are a knowledgeable news assistant. Generate a morning briefing with exactly 5 significant Canada national news items — politics, news, culture, or viral/popular topics. Use your knowledge to create realistic, plausible news items relevant to Canada in ${DATE_STR}.
-Each item: title (Hebrew headline ≤12 words), summary (2-3 Hebrew sentences), details (4-5 Hebrew sentences with context), category (פוליטיקה|חדשות|תרבות|ויראלי), emoji (1), url ("").
-Return ONLY a raw JSON array, no markdown, no backticks, no explanation.`;
+Generate a morning briefing: exactly 5 Canada national news items (politics, culture, viral). Be concise.
+Each item: title (Hebrew ≤10 words), summary (2 Hebrew sentences), details (3 Hebrew sentences), category (פוליטיקה|חדשות|תרבות|ויראלי), emoji, url ("").
+Return ONLY a raw JSON array. No markdown, no backticks, no explanation.`;
 
   if (tab === "toronto") return `Today is ${DATE_STR} in Toronto, Canada.
-You are a knowledgeable news assistant. Generate a morning briefing with exactly 5 significant Toronto local news items — city politics, local events, culture, or viral topics. Use your knowledge to create realistic, plausible news items relevant to Toronto in ${DATE_STR}.
-Each item: title (Hebrew headline ≤12 words), summary (2-3 Hebrew sentences), details (4-5 Hebrew sentences with context), category (פוליטיקה|חדשות|תרבות|ויראלי), emoji (1), url ("").
-Return ONLY a raw JSON array, no markdown, no backticks, no explanation.`;
+Generate a morning briefing: exactly 5 Toronto local news items (city news, culture, viral). Be concise.
+Each item: title (Hebrew ≤10 words), summary (2 Hebrew sentences), details (3 Hebrew sentences), category (פוליטיקה|חדשות|תרבות|ויראלי), emoji, url ("").
+Return ONLY a raw JSON array. No markdown, no backticks, no explanation.`;
 
   if (tab === "weekend") {
     const wknd = getWeekendDates();
     return `Today is ${DATE_STR} in Toronto, Canada.
-Family profile: ${kidsDesc()}. Interests: ${interestsDesc()}.
-Generate exactly 6 weekend activity recommendations for this family for the upcoming weekend (${wknd}). Base: North York / Toronto, max 2hr drive. Mix seasonal outdoor/indoor activities suited to the kids' ages. Include real venues and attractions in the Toronto area.
-Each item: title (Hebrew), summary (2-3 Hebrew sentences), details (4-5 Hebrew sentences with typical hours, cost range, practical tips), category (טבע|תרבות|הרפתקאה|אמנות|ספורט|אוכל), emoji (1), distance (~X דקות נסיעה), address (full English address), url ("").
-Return ONLY a raw JSON array, no markdown, no backticks, no explanation.`;
+Family: ${kidsDesc()}. Interests: ${interestsDesc()}.
+Generate exactly 6 weekend activities for this family, weekend of ${wknd}. North York / Toronto area, max 2hr drive. Be concise.
+Each item: title (Hebrew), summary (2 Hebrew sentences), details (3 Hebrew sentences with hours and cost), category (טבע|תרבות|הרפתקאה|אמנות|ספורט|אוכל), emoji, distance (~X דקות נסיעה), address (English), url ("").
+Return ONLY a raw JSON array. No markdown, no backticks, no explanation.`;
   }
 }
 
@@ -476,7 +476,7 @@ async function fetchTab(tab) {
       xhr.ontimeout = () => reject(new Error("Request timed out (90s) — נסי שוב"));
       xhr.send(JSON.stringify({
         model:      MODEL,
-        max_tokens: 2000,
+        max_tokens: 3000,
         messages:   [{ role:"user", content: getPrompt(tab) }],
       }));
     });
