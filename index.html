@@ -69,11 +69,16 @@
     display: flex;
     gap: 2px;
     margin-top: 4px;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
   }
+  .tabs::-webkit-scrollbar { display: none; }
   .tab {
-    flex: 1;
-    padding: 10px 2px 8px;
-    font-size: 0.7rem;
+    flex-shrink: 0;
+    white-space: nowrap;
+    font-size: 0.68rem;
+    padding: 10px 6px 8px;
     font-weight: 700;
     background: transparent;
     color: #6fa3c8;
@@ -83,11 +88,11 @@
     transition: all 0.2s;
     position: relative;
     border-bottom: 3px solid transparent;
-    white-space: nowrap;
   }
   .tab.active { background: #f0f2f8; border-bottom: 3px solid transparent; }
   .tab.active.canada  { color: #c0392b; }
   .tab.active.toronto { color: #1a5276; }
+  .tab.active.custom  { color: #c0711a; }
   .tab.active.weekend { color: #1e8449; }
   .tab.active.done    { color: #7d3c98; }
   .tab-new {
@@ -135,6 +140,10 @@
   .card-meta { display: flex; gap: 5px; margin-bottom: 6px; flex-wrap: wrap; align-items: center; }
   .badge {
     font-size: 0.67rem; font-weight: 700; padding: 2px 9px;
+    border-radius: 20px; white-space: nowrap;
+  }
+  .badge-reliability {
+    font-size: 0.63rem; font-weight: 700; padding: 2px 8px;
     border-radius: 20px; white-space: nowrap;
   }
   .done-badge {
@@ -185,6 +194,29 @@
     color: #333; direction: rtl; line-height: 1.7;
     border-top: 1px solid rgba(0,0,0,0.05);
   }
+
+  /* LOAD MORE */
+  .btn-load-more {
+    display: block; width: 100%; margin-top: 4px; margin-bottom: 8px;
+    padding: 10px; border-radius: 12px; font-size: 0.82rem; font-weight: 700;
+    background: #eafaf1; color: #1e8449; border: 1.5px solid #1e8449;
+    cursor: pointer; text-align: center; transition: all 0.18s;
+  }
+  .btn-load-more:hover { background: #1e8449; color: #fff; }
+  .btn-load-more:disabled { opacity: 0.5; cursor: default; }
+
+  /* COUNTRY SELECTOR */
+  .country-selector {
+    display: flex; gap: 8px; overflow-x: auto; padding-bottom: 10px;
+    margin-bottom: 10px; -webkit-overflow-scrolling: touch; scrollbar-width: none;
+  }
+  .country-selector::-webkit-scrollbar { display: none; }
+  .country-chip {
+    flex-shrink: 0; padding: 6px 12px; border-radius: 20px;
+    border: 1.5px solid #d0d5e0; font-size: 0.78rem; cursor: pointer;
+    font-weight: 600; color: #555; background: #fff; white-space: nowrap;
+  }
+  .country-chip.selected { background: #fef5ec; border-color: #c0711a; color: #c0711a; }
 
   /* DONE TAB HEADER */
   .done-section-header {
@@ -258,7 +290,7 @@
   }
   .modal-tabs-header {
     display: flex; border-bottom: 1px solid #e8eaf0;
-    background: #f8f9fc; flex-shrink: 0;
+    background: #f8f9fc; flex-shrink: 0; align-items: center;
   }
   .modal-tab-btn {
     flex: 1; padding: 12px 6px; font-size: 0.76rem; font-weight: 700;
@@ -267,6 +299,12 @@
     transition: all 0.2s;
   }
   .modal-tab-btn.active { color: #0f3460; border-bottom-color: #0f3460; background: #fff; }
+  .modal-close-btn {
+    background: none; border: none; cursor: pointer;
+    color: #aaa; font-size: 1.1rem; padding: 8px 12px;
+    line-height: 1; margin-right: auto;
+  }
+  .modal-close-btn:hover { color: #333; }
   .modal-content {
     padding: 20px; overflow-y: auto;
   }
@@ -361,8 +399,16 @@
 <script>
 // ─── CONFIG ───────────────────────────────────────────────────────────────────
 const API_URL  = "https://morning-brief-api.lior0gal.workers.dev";
-const MODEL    = "claude-sonnet-4-6";
+const MODEL    = "claude-haiku-4-5-20251001";
 const INTERESTS_LIST = ["טבע", "תרבות", "הרפתקאה", "אמנות", "ספורט", "אוכל"];
+const COUNTRIES = [
+  { key:"israel",  label:"🇮🇱 ישראל" },
+  { key:"world",   label:"🌍 עולם" },
+  { key:"usa",     label:"🇺🇸 ארה״ב" },
+  { key:"uk",      label:"🇬🇧 בריטניה" },
+  { key:"france",  label:"🇫🇷 צרפת" },
+  { key:"germany", label:"🇩🇪 גרמניה" },
+];
 
 // ─── TIME ─────────────────────────────────────────────────────────────────────
 const NOW         = new Date();
@@ -396,6 +442,7 @@ function getWeekendDates() {
 const TABS = [
   { key:"canada",  label:"🍁 קנדה",    cls:"canada",  color:"#c0392b", bg:"#fff5f5" },
   { key:"toronto", label:"🏙️ טורונטו", cls:"toronto", color:"#1a5276", bg:"#eaf4fb" },
+  { key:"custom",  label:"🌍 אחר",     cls:"custom",  color:"#c0711a", bg:"#fef5ec" },
   { key:"weekend", label:"🎉 סופ״ש",   cls:"weekend", color:"#1e8449", bg:"#eafaf1" },
   { key:"done",    label:"✅ ביקרנו",  cls:"done",    color:"#7d3c98", bg:"#f5eef8" },
 ];
@@ -407,13 +454,16 @@ const DEFAULT_PROFILE = {
 
 // ─── STATE ────────────────────────────────────────────────────────────────────
 let state = {
-  activeTab:    "canada",
-  cache:        {},
-  loading:      {},
-  errors:       {},
-  expanded:     {},
-  showSettings: false,
-  settingsTab:  "profile",
+  activeTab:     "canada",
+  cache:         {},
+  loading:       {},
+  errors:        {},
+  expanded:      {},
+  showSettings:  false,
+  settingsTab:   "profile",
+  weekendExtra:  [],
+  loadingMore:   false,
+  customCountry: localStorage.getItem("mbriefing_country") || "israel",
   profile:  JSON.parse(localStorage.getItem("mbriefing_profile") || JSON.stringify(DEFAULT_PROFILE)),
   done:     JSON.parse(localStorage.getItem("mbriefing_done")    || "[]"),
 };
@@ -436,13 +486,21 @@ function interestsDesc() {
 function getPrompt(tab) {
   if (tab === "canada") return `Today is ${DATE_STR} in Toronto, Canada.
 Generate a morning briefing: exactly 5 Canada national news items (politics, culture, viral). Be concise.
-Each item: title (Hebrew ≤10 words), summary (2 Hebrew sentences), details (3 Hebrew sentences), category (פוליטיקה|חדשות|תרבות|ויראלי), emoji, url ("").
+Each item: title (Hebrew ≤10 words), summary (2 Hebrew sentences), details (3 Hebrew sentences), category (פוליטיקה|חדשות|תרבות|ויראלי), emoji, url (""), reliability (גבוהה|בינונית|נמוכה).
 Return ONLY a raw JSON array. No markdown, no backticks, no explanation.`;
 
   if (tab === "toronto") return `Today is ${DATE_STR} in Toronto, Canada.
 Generate a morning briefing: exactly 5 Toronto local news items (city news, culture, viral). Be concise.
-Each item: title (Hebrew ≤10 words), summary (2 Hebrew sentences), details (3 Hebrew sentences), category (פוליטיקה|חדשות|תרבות|ויראלי), emoji, url ("").
+Each item: title (Hebrew ≤10 words), summary (2 Hebrew sentences), details (3 Hebrew sentences), category (פוליטיקה|חדשות|תרבות|ויראלי), emoji, url (""), reliability (גבוהה|בינונית|נמוכה).
 Return ONLY a raw JSON array. No markdown, no backticks, no explanation.`;
+
+  if (tab === "custom") {
+    const country = COUNTRIES.find(c => c.key === state.customCountry) || COUNTRIES[0];
+    return `Today is ${DATE_STR}.
+Generate a morning briefing: exactly 5 news items from/about ${country.label} (politics, culture, viral). Write everything in Hebrew. Be concise.
+Each item: title (Hebrew ≤10 words), summary (2 Hebrew sentences), details (3 Hebrew sentences), category (פוליטיקה|חדשות|תרבות|ויראלי), emoji, url (""), reliability (גבוהה|בינונית|נמוכה).
+Return ONLY a raw JSON array. No markdown, no backticks, no explanation.`;
+  }
 
   if (tab === "weekend") {
     const wknd = getWeekendDates();
@@ -454,7 +512,53 @@ Return ONLY a raw JSON array. No markdown, no backticks, no explanation.`;
   }
 }
 
+function getLoadMoreWeekendPrompt(existingTitles) {
+  const wknd = getWeekendDates();
+  return `Today is ${DATE_STR} in Toronto, Canada.
+Family: ${kidsDesc()}. Interests: ${interestsDesc()}.
+Generate 6 MORE weekend activities for this family, weekend of ${wknd}. North York / Toronto area, max 2hr drive. Be concise.
+These activities already exist — do NOT repeat them: ${existingTitles}.
+Each item: title (Hebrew), summary (2 Hebrew sentences), details (3 Hebrew sentences with hours and cost), category (טבע|תרבות|הרפתקאה|אמנות|ספורט|אוכל), emoji, distance (~X דקות נסיעה), address (English), url ("").
+Return ONLY a raw JSON array. No markdown, no backticks, no explanation.`;
+}
+
 // ─── API CALL ─────────────────────────────────────────────────────────────────
+async function callAPI(prompt) {
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open("POST", API_URL);
+    xhr.setRequestHeader("Content-Type", "application/json");
+    xhr.timeout = 90000;
+    xhr.onload  = () => {
+      try { resolve(JSON.parse(xhr.responseText)); }
+      catch { reject(new Error(`HTTP ${xhr.status}: response not JSON`)); }
+    };
+    xhr.onerror   = () => reject(new Error("XHR network error"));
+    xhr.ontimeout = () => reject(new Error("Request timed out (90s) — נסי שוב"));
+    xhr.send(JSON.stringify({
+      model:      MODEL,
+      max_tokens: 2000,
+      messages:   [{ role:"user", content: prompt }],
+    }));
+  });
+}
+
+function parseAPIResponse(data) {
+  if (data.error) throw new Error(data.error.message);
+  const text = (data.content || []).filter(b => b.type === "text").map(b => b.text).join("");
+  let parsed = null;
+  const attempts = [
+    () => JSON.parse(text.trim()),
+    () => JSON.parse(text.replace(/```json\s*/gi, "").replace(/```\s*/g, "").trim()),
+    () => { const m = text.match(/\[[\s\S]*\]/); if (m) return JSON.parse(m[0]); throw new Error(); },
+  ];
+  for (const fn of attempts) {
+    try { parsed = fn(); break; } catch {}
+  }
+  if (!parsed) throw new Error("שגיאה בניתוח התשובה מ-Claude: " + text.slice(0, 80));
+  return parsed;
+}
+
 async function fetchTab(tab) {
   if (tab === "done") return;
 
@@ -463,38 +567,8 @@ async function fetchTab(tab) {
   render();
 
   try {
-    const data = await new Promise((resolve, reject) => {
-      const xhr = new XMLHttpRequest();
-      xhr.open("POST", API_URL);
-      xhr.setRequestHeader("Content-Type", "application/json");
-      xhr.timeout = 90000;
-      xhr.onload  = () => {
-        try { resolve(JSON.parse(xhr.responseText)); }
-        catch { reject(new Error(`HTTP ${xhr.status}: response not JSON`)); }
-      };
-      xhr.onerror   = () => reject(new Error("XHR network error"));
-      xhr.ontimeout = () => reject(new Error("Request timed out (90s) — נסי שוב"));
-      xhr.send(JSON.stringify({
-        model:      MODEL,
-        max_tokens: 3000,
-        messages:   [{ role:"user", content: getPrompt(tab) }],
-      }));
-    });
-
-    if (data.error) throw new Error(data.error.message);
-
-    const text = (data.content || []).filter(b => b.type === "text").map(b => b.text).join("");
-    // Try progressively more lenient extraction
-    let parsed = null;
-    const attempts = [
-      () => JSON.parse(text.trim()),
-      () => JSON.parse(text.replace(/```json\s*/gi, "").replace(/```\s*/g, "").trim()),
-      () => { const m = text.match(/\[[\s\S]*\]/); if (m) return JSON.parse(m[0]); throw new Error(); },
-    ];
-    for (const fn of attempts) {
-      try { parsed = fn(); break; } catch {}
-    }
-    if (!parsed) throw new Error("שגיאה בניתוח התשובה מ-Claude: " + text.slice(0, 80));
+    const data   = await callAPI(getPrompt(tab));
+    const parsed = parseAPIResponse(data);
     state.cache[tab] = parsed;
   } catch(e) {
     const msg = e?.message || "";
@@ -505,9 +579,31 @@ async function fetchTab(tab) {
   }
 }
 
+async function loadMoreWeekend() {
+  const allItems    = (state.cache.weekend || []).concat(state.weekendExtra);
+  const existingTitles = allItems.map(i => i.title).join(", ");
+
+  state.loadingMore = true;
+  render();
+
+  try {
+    const data   = await callAPI(getLoadMoreWeekendPrompt(existingTitles));
+    const parsed = parseAPIResponse(data);
+    state.weekendExtra = state.weekendExtra.concat(parsed);
+  } catch(e) {
+    // silent fail — just stop loading
+  } finally {
+    state.loadingMore = false;
+    render();
+  }
+}
+
 // ─── DONE ─────────────────────────────────────────────────────────────────────
 function markDone(tabKey, idx) {
-  const item = state.cache[tabKey][idx];
+  const allItems = tabKey === "weekend"
+    ? (state.cache.weekend || []).concat(state.weekendExtra)
+    : state.cache[tabKey];
+  const item = allItems[idx];
   state.done = state.done.filter(d => d.title !== item.title);
   state.done.unshift({ ...item, _doneAt: new Date().toISOString() });
   localStorage.setItem("mbriefing_done", JSON.stringify(state.done));
@@ -593,7 +689,11 @@ function buildHTML() {
 function buildTabContent(tabKey, tab) {
   if (tabKey === "done") return buildDoneContent(tab);
 
+  // Custom tab: show country selector above the usual content
+  const countrySelector = tabKey === "custom" ? buildCountrySelector() : "";
+
   if (state.loading[tabKey]) return `
+    ${countrySelector}
     <div class="loading">
       <div class="loading-icon">📰</div>
       <div class="loading-text">טוענת חדשות טריות...</div>
@@ -601,6 +701,7 @@ function buildTabContent(tabKey, tab) {
     </div>`;
 
   if (state.errors[tabKey]) return `
+    ${countrySelector}
     <div class="error-box">
       <div>${state.errors[tabKey]}</div>
       <button class="btn-retry" style="background:${tab.color}" data-retry="${tabKey}">נסי שוב</button>
@@ -608,17 +709,41 @@ function buildTabContent(tabKey, tab) {
 
   const items = state.cache[tabKey];
   if (!items) return `
+    ${countrySelector}
     <div class="loading">
       <div class="loading-icon">🔍</div>
       <div class="loading-text">לחצי טעינה להתחיל</div>
       <button class="btn-retry" style="background:${tab.color};display:inline-block;margin-top:14px" data-retry="${tabKey}">טעני עכשיו</button>
     </div>`;
 
+  // Weekend tab: combine base + extra items, show load-more button
+  if (tabKey === "weekend") {
+    const allWeekend = (state.cache.weekend || []).concat(state.weekendExtra);
+    return `
+      <div class="refresh-row">
+        <button class="btn-refresh" style="border:1.5px solid ${tab.color};color:${tab.color}" data-retry="${tabKey}">🔄 רענן</button>
+      </div>
+      ${allWeekend.map((item, i) => buildCard(item, i, tab, true)).join("")}
+      ${state.loadingMore
+        ? `<div class="loading" style="padding:22px 0"><div class="loading-bar" style="margin:0 auto"><div class="loading-bar-inner" style="background:${tab.color}"></div></div></div>`
+        : `<button class="btn-load-more" id="btn-load-more">טען עוד ▼</button>`
+      }`;
+  }
+
   return `
+    ${countrySelector}
     <div class="refresh-row">
       <button class="btn-refresh" style="border:1.5px solid ${tab.color};color:${tab.color}" data-retry="${tabKey}">🔄 רענן</button>
     </div>
-    ${items.map((item, i) => buildCard(item, i, tab, tabKey === "weekend")).join("")}`;
+    ${items.map((item, i) => buildCard(item, i, tab, false)).join("")}`;
+}
+
+function buildCountrySelector() {
+  return `<div class="country-selector">
+    ${COUNTRIES.map(c => `
+      <button class="country-chip${state.customCountry === c.key ? " selected" : ""}" data-country="${c.key}">${c.label}</button>
+    `).join("")}
+  </div>`;
 }
 
 function buildDoneContent(tab) {
@@ -636,6 +761,17 @@ function buildDoneContent(tab) {
     ${state.done.map((item, i) => buildDoneCard(item, i, tab)).join("")}`;
 }
 
+function buildReliabilityBadge(reliability) {
+  if (!reliability) return "";
+  const map = {
+    "גבוהה":  { bg:"#eafaf1", color:"#1e8449", border:"#1e844933" },
+    "בינונית": { bg:"#fef9ec", color:"#b7770d", border:"#b7770d33" },
+    "נמוכה":  { bg:"#fff5f5", color:"#c0392b", border:"#c0392b33" },
+  };
+  const s = map[reliability] || map["בינונית"];
+  return `<span class="badge-reliability" style="background:${s.bg};color:${s.color};border:1px solid ${s.border}">${reliability}</span>`;
+}
+
 function buildCard(item, i, tab, isWeekend) {
   const expKey = `${tab.key}-${i}`;
   const isOpen = state.expanded[expKey];
@@ -649,6 +785,7 @@ function buildCard(item, i, tab, isWeekend) {
             <div class="card-meta">
               <span class="badge" style="background:${tab.color}18;color:${tab.color};border:1px solid ${tab.color}33">${item.category}</span>
               ${item.distance ? `<span style="font-size:0.68rem;color:#1e8449;font-weight:700">📍 ${item.distance}</span>` : ""}
+              ${item.reliability ? buildReliabilityBadge(item.reliability) : ""}
               ${done ? `<span class="done-badge">✓ ביקרנו</span>` : ""}
             </div>
             <div class="card-title">${item.title}</div>
@@ -714,6 +851,7 @@ function buildSettingsModal() {
         <div class="modal-tabs-header">
           <button class="modal-tab-btn${state.settingsTab === "profile" ? " active" : ""}" data-stab="profile">👨‍👩‍👧 פרופיל</button>
           <button class="modal-tab-btn${state.settingsTab === "backup"  ? " active" : ""}" data-stab="backup">💾 גיבוי</button>
+          <button class="modal-close-btn" id="btn-modal-close">✕</button>
         </div>
         <div class="modal-content">
           ${state.settingsTab === "profile" ? buildProfileTab() : ""}
@@ -721,21 +859,6 @@ function buildSettingsModal() {
         </div>
       </div>
     </div>`;
-}
-
-function buildKeyTab() {
-  return `
-    <h2>🔑 Anthropic API Key</h2>
-    <p style="direction:ltr;text-align:left">Stored only in your browser's localStorage.</p>
-    <input type="text" id="api-key-input" placeholder="sk-ant-api03-..."
-      value="${state.apiKey}"
-      autocorrect="off" autocapitalize="none" autocomplete="off" spellcheck="false"
-      style="direction:ltr;font-size:0.75rem" />
-    <div class="modal-btns" style="margin-top:14px">
-      <button class="btn-save" id="btn-save-key">Save &amp; Start</button>
-      ${state.apiKey ? `<button class="btn-cancel" id="btn-cancel-modal">Cancel</button>` : ""}
-    </div>
-    <div class="modal-note" style="direction:ltr;text-align:left">Get a key at console.anthropic.com → API Keys</div>`;
 }
 
 function buildProfileTab() {
@@ -766,7 +889,7 @@ function buildProfileTab() {
     </div>
 
     <div class="modal-btns" style="margin-top:18px">
-      ${state.apiKey ? `<button class="btn-cancel" id="btn-cancel-modal">סגור</button>` : ""}
+      <button class="btn-cancel" id="btn-cancel-modal">סגור</button>
     </div>`;
 }
 
@@ -786,7 +909,7 @@ function buildBackupTab() {
       <div>תחומי עניין: ${interestsDesc()}</div>
       <div>פעילויות שביצעת: <strong>${state.done.length}</strong></div>
     </div>
-    ${state.apiKey ? `<div class="modal-btns" style="margin-top:14px"><button class="btn-cancel" id="btn-cancel-modal">סגור</button></div>` : ""}`;
+    <div class="modal-btns" style="margin-top:14px"><button class="btn-cancel" id="btn-cancel-modal">סגור</button></div>`;
 }
 
 // ─── EVENTS ───────────────────────────────────────────────────────────────────
@@ -803,7 +926,12 @@ function attachEvents() {
 
   // Retry / refresh / load
   document.querySelectorAll("[data-retry]").forEach(el => {
-    el.addEventListener("click", () => { state.cache[el.dataset.retry] = null; fetchTab(el.dataset.retry); });
+    el.addEventListener("click", () => {
+      const key = el.dataset.retry;
+      state.cache[key] = null;
+      if (key === "weekend") { state.weekendExtra = []; }
+      fetchTab(key);
+    });
   });
 
   // Expand / collapse
@@ -830,16 +958,18 @@ function attachEvents() {
     el.addEventListener("click", () => { state.settingsTab = el.dataset.stab; render(); });
   });
 
-  // Save API key
+  // Close modal — X button
+  const modalCloseBtn = document.getElementById("btn-modal-close");
+  if (modalCloseBtn) modalCloseBtn.addEventListener("click", () => { state.showSettings = false; render(); });
 
-  // Close modal
+  // Close modal — סגור button inside tabs
   const cancelBtn = document.getElementById("btn-cancel-modal");
   if (cancelBtn) cancelBtn.addEventListener("click", () => { state.showSettings = false; render(); });
 
   // Click outside modal
   const modalBg = document.getElementById("modal-bg");
   if (modalBg) modalBg.addEventListener("click", e => {
-    if (e.target === modalBg && state.apiKey) { state.showSettings = false; render(); }
+    if (e.target === modalBg) { state.showSettings = false; render(); }
   });
 
   // Add kid (auto-saves)
@@ -882,6 +1012,22 @@ function attachEvents() {
       saveProfile();
     });
   });
+
+  // Country chip selection
+  document.querySelectorAll("[data-country]").forEach(el => {
+    el.addEventListener("click", () => {
+      const key = el.dataset.country;
+      if (state.customCountry === key) return;
+      state.customCountry = key;
+      localStorage.setItem("mbriefing_country", key);
+      state.cache.custom = null;
+      fetchTab("custom");
+    });
+  });
+
+  // Load more weekend
+  const loadMoreBtn = document.getElementById("btn-load-more");
+  if (loadMoreBtn) loadMoreBtn.addEventListener("click", loadMoreWeekend);
 
   // Export backup
   const exportBtn = document.getElementById("btn-export");
