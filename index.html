@@ -827,7 +827,7 @@ function buildCard(item, i, tab, isWeekend) {
         <div class="card-summary">${item.summary}</div>
         ${item.address ? `<div class="card-address">📌 ${item.address}</div>` : ""}
         <div class="card-actions">
-          ${!isWeekend ? `<a class="btn-link" style="color:${tab.color}" href="${item.url && item.url.startsWith("http") ? item.url : "https://www.google.com/search?q=" + encodeURIComponent(item.title) + "&tbm=nws"}" target="_blank" rel="noopener">מקור ↗</a>` : (item.url ? `<a class="btn-link" style="color:${tab.color}" href="${item.url}" target="_blank" rel="noopener">אתר ↗</a>` : "")}
+          ${!isWeekend ? `<a class="btn-link" style="color:${tab.color}" href="https://www.google.com/search?q=${encodeURIComponent(item.title)}" target="_blank" rel="noopener">מקור ↗</a>` : (item.url ? `<a class="btn-link" style="color:${tab.color}" href="${item.url}" target="_blank" rel="noopener">אתר ↗</a>` : "")}
           ${isWeekend && !done ? `<button class="btn-done-mark" data-done-tab="${tab.key}" data-done-idx="${i}">✓ ביקרנו</button>` : ""}
           <button class="btn-expand"
             style="background:${isOpen ? tab.color : "#fff"};color:${isOpen ? "#fff" : tab.color};border:1.5px solid ${tab.color}"
