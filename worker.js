@@ -30,6 +30,13 @@ export default {
       });
     }
 
+    // Simple connectivity test
+    if (method === "POST" && new URL(request.url).pathname === "/test") {
+      return new Response(JSON.stringify({ ok: true }), {
+        headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" },
+      });
+    }
+
     // Proxy to Anthropic — apiKey comes in the body, not headers
     if (method === "POST") {
       let body;

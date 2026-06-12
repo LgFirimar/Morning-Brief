@@ -614,6 +614,10 @@ function buildTabContent(tabKey, tab) {
       <div>שגיאה בטעינה</div>
       <div style="font-size:0.75rem;margin-top:6px;opacity:0.75;word-break:break-all;direction:ltr;text-align:left">${state.errors[tabKey]}</div>
       <button class="btn-retry" style="background:${tab.color}" data-retry="${tabKey}">נסי שוב</button>
+      <div style="margin-top:10px">
+        <button onclick="testConnection()" style="background:#555;color:#fff;border:none;border-radius:8px;padding:6px 14px;font-size:0.75rem;cursor:pointer">🔌 Test Connection</button>
+        <div id="test-out" style="font-size:0.72rem;margin-top:6px;direction:ltr;text-align:left;word-break:break-all"></div>
+      </div>
     </div>`;
 
   const items = state.cache[tabKey];
@@ -913,6 +917,21 @@ function attachEvents() {
   // Import backup
   const importFile = document.getElementById("import-file");
   if (importFile) importFile.addEventListener("change", e => { if (e.target.files[0]) importBackup(e.target.files[0]); });
+}
+
+// ─── CONNECTION TEST ──────────────────────────────────────────────────────────
+function testConnection() {
+  const out = document.getElementById("test-out");
+  out.textContent = "Testing...";
+  const xhr = new XMLHttpRequest();
+  xhr.open("POST", API_URL + "/test");
+  xhr.setRequestHeader("Content-Type", "application/json");
+  xhr.timeout = 10000;
+  xhr.onload  = () => out.textContent = "✓ POST works! Status: " + xhr.status + " — " + xhr.responseText;
+  xhr.onerror = () => out.textContent = "✗ XHR error (network blocked)";
+  xhr.ontimeout = () => out.textContent = "✗ Timeout";
+  try { xhr.send(JSON.stringify({ test: true })); }
+  catch(e) { out.textContent = "✗ Exception: " + e.name + ": " + e.message; }
 }
 
 // ─── INIT ─────────────────────────────────────────────────────────────────────
