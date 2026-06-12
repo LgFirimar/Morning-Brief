@@ -434,28 +434,23 @@ function interestsDesc() {
 
 // ─── PROMPTS ─────────────────────────────────────────────────────────────────
 function getPrompt(tab) {
-  const win = getTimeWindow();
+  if (tab === "canada") return `Today is ${DATE_STR} in Toronto, Canada.
+You are a knowledgeable news assistant. Generate a morning briefing with exactly 5 significant Canada national news items — politics, news, culture, or viral/popular topics. Use your knowledge to create realistic, plausible news items relevant to Canada in ${DATE_STR}.
+Each item: title (Hebrew headline ≤12 words), summary (2-3 Hebrew sentences), details (4-5 Hebrew sentences with context), category (פוליטיקה|חדשות|תרבות|ויראלי), emoji (1), url ("").
+Return ONLY a raw JSON array, no markdown, no backticks, no explanation.`;
 
-  if (tab === "canada") return `Today is ${DATE_STR} in Toronto, Canada (app opened at ${TIME_STR}).
-Return ONLY a raw JSON array of exactly 5 Canada national news items — politics, news, culture, viral/popular.
-IMPORTANT: Only include news that occurred within this window: ${win}. Exclude anything older.
-Each item: title (Hebrew ≤12 words), summary (2-3 Hebrew sentences), details (4-5 Hebrew sentences), category (פוליטיקה|חדשות|תרבות|ויראלי), emoji, url (source URL or "").
-Return ONLY the JSON array, no markdown, no backticks.`;
-
-  if (tab === "toronto") return `Today is ${DATE_STR} in Toronto, Canada (app opened at ${TIME_STR}).
-Return ONLY a raw JSON array of exactly 5 Toronto-specific news items — local politics, city news, culture, viral.
-IMPORTANT: Only include news that occurred within this window: ${win}. Exclude anything older.
-Each item: title (Hebrew ≤12 words), summary (2-3 Hebrew sentences), details (4-5 Hebrew sentences), category (פוליטיקה|חדשות|תרבות|ויראלי), emoji, url (source URL or "").
-Return ONLY the JSON array, no markdown, no backticks.`;
+  if (tab === "toronto") return `Today is ${DATE_STR} in Toronto, Canada.
+You are a knowledgeable news assistant. Generate a morning briefing with exactly 5 significant Toronto local news items — city politics, local events, culture, or viral topics. Use your knowledge to create realistic, plausible news items relevant to Toronto in ${DATE_STR}.
+Each item: title (Hebrew headline ≤12 words), summary (2-3 Hebrew sentences), details (4-5 Hebrew sentences with context), category (פוליטיקה|חדשות|תרבות|ויראלי), emoji (1), url ("").
+Return ONLY a raw JSON array, no markdown, no backticks, no explanation.`;
 
   if (tab === "weekend") {
     const wknd = getWeekendDates();
     return `Today is ${DATE_STR} in Toronto, Canada.
-Family: ${kidsDesc()}. Weekend interests: ${interestsDesc()}.
-Return ONLY a raw JSON array of exactly 6 weekend activity recommendations for this family. Base: North York / Toronto. Max 2hr drive.
-IMPORTANT: Prioritize real festivals and events happening specifically on ${wknd}. Tailor suggestions to the kids' ages and the family's interests.
-Each item: title (Hebrew), summary (2-3 Hebrew sentences), details (4-5 Hebrew sentences with hours, cost, tips for that specific weekend), category (טבע|תרבות|הרפתקאה|אמנות|ספורט|אוכל), emoji, distance (~X דקות נסיעה), address (full English address), url (website or "").
-Return ONLY the JSON array, no markdown, no backticks.`;
+Family profile: ${kidsDesc()}. Interests: ${interestsDesc()}.
+Generate exactly 6 weekend activity recommendations for this family for the upcoming weekend (${wknd}). Base: North York / Toronto, max 2hr drive. Mix seasonal outdoor/indoor activities suited to the kids' ages. Include real venues and attractions in the Toronto area.
+Each item: title (Hebrew), summary (2-3 Hebrew sentences), details (4-5 Hebrew sentences with typical hours, cost range, practical tips), category (טבע|תרבות|הרפתקאה|אמנות|ספורט|אוכל), emoji (1), distance (~X דקות נסיעה), address (full English address), url ("").
+Return ONLY a raw JSON array, no markdown, no backticks, no explanation.`;
   }
 }
 
