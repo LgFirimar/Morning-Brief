@@ -504,12 +504,13 @@ async function fetchTab(tab) {
     try { state.cache[tab] = JSON.parse(clean); }
     catch { throw new Error("שגיאה בניתוח התשובה מ-Claude"); }
   } catch(e) {
-    const msg  = e?.message || "";
-    const name = e?.name    || "Error";
+    const msg   = e?.message || "";
+    const name  = e?.name    || "Error";
+    const stack = (e?.stack  || "").replace(/\n/g," ").slice(0,200);
     if (msg.includes("api_key") || msg.includes("auth") || msg.includes("401")) {
       state.errors[tab] = "מפתח API שגוי. בדקי בהגדרות.";
     } else {
-      state.errors[tab] = `${name}: "${msg || "no message"}" — endpoint: ${API_URL}`;
+      state.errors[tab] = `${name}: "${msg||"no msg"}" | ${stack||"no stack"}`;
     }
   } finally {
     state.loading[tab] = false;
