@@ -206,17 +206,27 @@
   .btn-load-more:disabled { opacity: 0.5; cursor: default; }
 
   /* COUNTRY SELECTOR */
-  .country-selector {
-    display: flex; gap: 8px; overflow-x: auto; padding-bottom: 10px;
-    margin-bottom: 10px; -webkit-overflow-scrolling: touch; scrollbar-width: none;
-  }
-  .country-selector::-webkit-scrollbar { display: none; }
-  .country-chip {
-    flex-shrink: 0; padding: 6px 12px; border-radius: 20px;
+  .country-selector { display: flex; gap: 8px; margin-bottom: 12px; position: relative; }
+  .country-main-btn {
+    flex: 1; padding: 8px 6px; border-radius: 10px;
     border: 1.5px solid #d0d5e0; font-size: 0.78rem; cursor: pointer;
-    font-weight: 600; color: #555; background: #fff; white-space: nowrap;
+    font-weight: 700; color: #555; background: #fff; text-align: center;
   }
-  .country-chip.selected { background: #fef5ec; border-color: #c0711a; color: #c0711a; }
+  .country-main-btn.active { background: #fef5ec; border-color: #c0711a; color: #c0711a; }
+  .country-dropdown-wrap { flex: 1; position: relative; }
+  .country-dropdown {
+    position: absolute; top: calc(100% + 4px); left: 0; right: 0;
+    background: #fff; border: 1.5px solid #d0d5e0; border-radius: 12px;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.12); z-index: 50; overflow: hidden;
+  }
+  .country-dropdown-item {
+    display: block; width: 100%; padding: 10px 14px; text-align: right;
+    border: none; background: none; cursor: pointer; font-size: 0.8rem;
+    font-weight: 600; color: #333; border-bottom: 1px solid #f0f2f8;
+  }
+  .country-dropdown-item:last-child { border-bottom: none; }
+  .country-dropdown-item:hover { background: #f8f9fc; }
+  .country-dropdown-item.active { color: #c0711a; background: #fef5ec; }
 
   /* DONE TAB HEADER */
   .done-section-header {
@@ -401,14 +411,21 @@
 const API_URL  = "https://morning-brief-api.lior0gal.workers.dev";
 const MODEL    = "claude-haiku-4-5-20251001";
 const INTERESTS_LIST = ["טבע", "תרבות", "הרפתקאה", "אמנות", "ספורט", "אוכל"];
-const COUNTRIES = [
-  { key:"israel",  label:"🇮🇱 ישראל" },
-  { key:"world",   label:"🌍 עולם" },
-  { key:"usa",     label:"🇺🇸 ארה״ב" },
-  { key:"uk",      label:"🇬🇧 בריטניה" },
-  { key:"france",  label:"🇫🇷 צרפת" },
-  { key:"germany", label:"🇩🇪 גרמניה" },
+const COUNTRIES_MAIN  = [
+  { key:"israel", label:"🇮🇱 ישראל" },
+  { key:"world",  label:"🌍 עולם"   },
 ];
+const COUNTRIES_OTHER = [
+  { key:"usa",     label:"🇺🇸 ארה״ב"    },
+  { key:"uk",      label:"🇬🇧 בריטניה"  },
+  { key:"france",  label:"🇫🇷 צרפת"     },
+  { key:"germany", label:"🇩🇪 גרמניה"   },
+  { key:"italy",   label:"🇮🇹 איטליה"   },
+  { key:"spain",   label:"🇪🇸 ספרד"     },
+  { key:"japan",   label:"🇯🇵 יפן"      },
+  { key:"india",   label:"🇮🇳 הודו"     },
+];
+const COUNTRIES = [...COUNTRIES_MAIN, ...COUNTRIES_OTHER];
 
 // ─── TIME ─────────────────────────────────────────────────────────────────────
 const NOW         = new Date();
@@ -463,7 +480,8 @@ let state = {
   settingsTab:   "profile",
   weekendExtra:  [],
   loadingMore:   false,
-  customCountry: localStorage.getItem("mbriefing_country") || "israel",
+  customCountry:      localStorage.getItem("mbriefing_country") || "israel",
+  customDropdownOpen: false,
   profile:  JSON.parse(localStorage.getItem("mbriefing_profile") || JSON.stringify(DEFAULT_PROFILE)),
   done:     JSON.parse(localStorage.getItem("mbriefing_done")    || "[]"),
 };
@@ -739,11 +757,25 @@ function buildTabContent(tabKey, tab) {
 }
 
 function buildCountrySelector() {
-  return `<div class="country-selector">
-    ${COUNTRIES.map(c => `
-      <button class="country-chip${state.customCountry === c.key ? " selected" : ""}" data-country="${c.key}">${c.label}</button>
-    `).join("")}
-  </div>`;
+  const isOther   = !COUNTRIES_MAIN.some(c => c.key === state.customCountry);
+  const otherSel  = isOther ? COUNTRIES_OTHER.find(c => c.key === state.customCountry) : null;
+  const otherLabel = otherSel ? otherSel.label : "אחר ▾";
+  return `
+    <div class="country-selector">
+      ${COUNTRIES_MAIN.map(c => `
+        <button class="country-main-btn${state.customCountry === c.key ? " active" : ""}" data-country="${c.key}">${c.label}</button>
+      `).join("")}
+      <div class="country-dropdown-wrap">
+        <button class="country-main-btn${isOther ? " active" : ""}" id="btn-other-country">${otherLabel}</button>
+        ${state.customDropdownOpen ? `
+          <div class="country-dropdown" id="country-dropdown">
+            ${COUNTRIES_OTHER.map(c => `
+              <button class="country-dropdown-item${state.customCountry === c.key ? " active" : ""}" data-country="${c.key}">${c.label}</button>
+            `).join("")}
+          </div>
+        ` : ""}
+      </div>
+    </div>`;
 }
 
 function buildDoneContent(tab) {
@@ -795,7 +827,7 @@ function buildCard(item, i, tab, isWeekend) {
         <div class="card-summary">${item.summary}</div>
         ${item.address ? `<div class="card-address">📌 ${item.address}</div>` : ""}
         <div class="card-actions">
-          ${item.url ? `<a class="btn-link" style="color:${tab.color}" href="${item.url}" target="_blank" rel="noopener">קישור ↗</a>` : ""}
+          ${!isWeekend ? `<a class="btn-link" style="color:${tab.color}" href="${item.url && item.url.startsWith("http") ? item.url : "https://news.google.com/search?q=" + encodeURIComponent(item.title)}" target="_blank" rel="noopener">מקור ↗</a>` : (item.url ? `<a class="btn-link" style="color:${tab.color}" href="${item.url}" target="_blank" rel="noopener">אתר ↗</a>` : "")}
           ${isWeekend && !done ? `<button class="btn-done-mark" data-done-tab="${tab.key}" data-done-idx="${i}">✓ ביקרנו</button>` : ""}
           <button class="btn-expand"
             style="background:${isOpen ? tab.color : "#fff"};color:${isOpen ? "#fff" : tab.color};border:1.5px solid ${tab.color}"
@@ -967,6 +999,11 @@ function attachEvents() {
   const cancelBtn = document.getElementById("btn-cancel-modal");
   if (cancelBtn) cancelBtn.addEventListener("click", () => { state.showSettings = false; render(); });
 
+  // Close country dropdown when clicking outside
+  if (state.customDropdownOpen) {
+    document.addEventListener("click", () => { state.customDropdownOpen = false; render(); }, { once: true });
+  }
+
   // Click outside modal
   const modalBg = document.getElementById("modal-bg");
   if (modalBg) modalBg.addEventListener("click", e => {
@@ -1015,9 +1052,17 @@ function attachEvents() {
   });
 
   // Country chip selection
+  const otherBtn = document.getElementById("btn-other-country");
+  if (otherBtn) otherBtn.addEventListener("click", e => {
+    e.stopPropagation();
+    state.customDropdownOpen = !state.customDropdownOpen;
+    render();
+  });
+
   document.querySelectorAll("[data-country]").forEach(el => {
     el.addEventListener("click", () => {
       const key = el.dataset.country;
+      state.customDropdownOpen = false;
       if (state.customCountry === key) return;
       state.customCountry = key;
       localStorage.setItem("mbriefing_country", key);
