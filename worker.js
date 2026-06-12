@@ -4,7 +4,7 @@
 //           only needs Content-Type (no custom headers = no CORS preflight)
 
 const ANTHROPIC_API = "https://api.anthropic.com/v1/messages";
-const GITHUB_PAGES  = "https://lgfirimar.github.io/Morning-Brief/";
+const GITHUB_PAGES = "https://lgfirimar.github.io/Morning-Brief/";
 
 export default {
   async fetch(request) {
