@@ -1,13 +1,12 @@
 // Morning Brief — Cloudflare Worker
 // GET  / → serves the app (fetched from GitHub Pages)
-// POST / → proxies to Anthropic; accepts apiKey in body so browser
-//           only needs Content-Type (no custom headers = no CORS preflight)
+// POST / → proxies to Anthropic using server-side secret key
 
 const ANTHROPIC_API = "https://api.anthropic.com/v1/messages";
-const GITHUB_PAGES = "https://lgfirimar.github.io/Morning-Brief/";
+const GITHUB_PAGES  = "https://lgfirimar.github.io/Morning-Brief/";
 
 export default {
-  async fetch(request) {
+  async fetch(request, env) {
     const method = request.method;
 
     if (method === "OPTIONS") {
@@ -21,7 +20,6 @@ export default {
       });
     }
 
-    // Serve the app
     if (method === "GET") {
       const res  = await fetch(GITHUB_PAGES, { cf: { cacheTtl: 120 } });
       const html = await res.text();
@@ -30,38 +28,29 @@ export default {
       });
     }
 
-    // Simple connectivity test
-    if (method === "POST" && new URL(request.url).pathname === "/test") {
-      return new Response(JSON.stringify({ ok: true }), {
-        headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" },
-      });
-    }
-
-    // Proxy to Anthropic — apiKey comes in the body, not headers
     if (method === "POST") {
-      let body;
-      try { body = await request.json(); }
-      catch { return new Response(JSON.stringify({ error: { message: "Invalid JSON body" } }), { status: 400, headers: { "Content-Type": "application/json" } }); }
-
-      const apiKey = body._apiKey;
-      if (!apiKey) {
-        return new Response(
-          JSON.stringify({ error: { message: "Missing _apiKey in body" } }),
-          { status: 401, headers: { "Content-Type": "application/json" } }
-        );
+      if (new URL(request.url).pathname === "/test") {
+        return new Response(JSON.stringify({ ok: true }), {
+          headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" },
+        });
       }
 
-      // Strip _apiKey before forwarding to Anthropic
-      const { _apiKey, ...anthropicBody } = body;
+      let body;
+      try { body = await request.json(); }
+      catch {
+        return new Response(JSON.stringify({ error: { message: "Invalid JSON" } }), {
+          status: 400, headers: { "Content-Type": "application/json" },
+        });
+      }
 
       const upstream = await fetch(ANTHROPIC_API, {
         method:  "POST",
         headers: {
           "Content-Type":      "application/json",
-          "x-api-key":         apiKey,
+          "x-api-key":         env.ANTHROPIC_API_KEY,
           "anthropic-version": "2023-06-01",
         },
-        body: JSON.stringify(anthropicBody),
+        body: JSON.stringify(body),
       });
 
       return new Response(await upstream.text(), {

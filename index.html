@@ -413,8 +413,7 @@ let state = {
   errors:       {},
   expanded:     {},
   showSettings: false,
-  settingsTab:  "key",
-  apiKey: localStorage.getItem("mbriefing_key") || "",
+  settingsTab:  "profile",
   profile:  JSON.parse(localStorage.getItem("mbriefing_profile") || JSON.stringify(DEFAULT_PROFILE)),
   done:     JSON.parse(localStorage.getItem("mbriefing_done")    || "[]"),
 };
@@ -463,15 +462,6 @@ Return ONLY the JSON array, no markdown, no backticks.`;
 // ─── API CALL ─────────────────────────────────────────────────────────────────
 async function fetchTab(tab) {
   if (tab === "done") return;
-  const key = state.apiKey;
-  if (!key) { state.showSettings = true; state.settingsTab = "key"; render(); return; }
-
-  if (location.protocol === "file:") {
-    state.errors[tab]  = "הקובץ נפתח ישירות מהמכשיר. יש לפתוח דרך: lgfirimar.github.io/Morning-Brief";
-    state.loading[tab] = false;
-    render();
-    return;
-  }
 
   state.loading[tab] = true;
   state.errors[tab]  = null;
@@ -490,7 +480,6 @@ async function fetchTab(tab) {
       xhr.onerror   = () => reject(new Error("XHR network error"));
       xhr.ontimeout = () => reject(new Error("Request timed out (60s)"));
       xhr.send(JSON.stringify({
-        _apiKey:    key,
         model:      MODEL,
         max_tokens: 4000,
         messages:   [{ role:"user", content: getPrompt(tab) }],
@@ -540,7 +529,6 @@ function exportBackup() {
   const payload = {
     version:  1,
     exported: new Date().toISOString(),
-    apiKey:   state.apiKey,
     profile:  state.profile,
     done:     state.done,
   };
@@ -558,7 +546,6 @@ function importBackup(file) {
   reader.onload = e => {
     try {
       const data = JSON.parse(e.target.result);
-      if (data.apiKey)  { state.apiKey  = data.apiKey;  localStorage.setItem("mbriefing_key", data.apiKey); }
       if (data.profile) { state.profile = data.profile; saveProfile(); }
       if (data.done)    { state.done    = data.done;    localStorage.setItem("mbriefing_done", JSON.stringify(data.done)); }
       state.showSettings = false;
@@ -732,12 +719,10 @@ function buildSettingsModal() {
     <div class="modal-bg" id="modal-bg">
       <div class="modal">
         <div class="modal-tabs-header">
-          <button class="modal-tab-btn${state.settingsTab === "key"     ? " active" : ""}" data-stab="key">🔑 API</button>
           <button class="modal-tab-btn${state.settingsTab === "profile" ? " active" : ""}" data-stab="profile">👨‍👩‍👧 פרופיל</button>
           <button class="modal-tab-btn${state.settingsTab === "backup"  ? " active" : ""}" data-stab="backup">💾 גיבוי</button>
         </div>
         <div class="modal-content">
-          ${state.settingsTab === "key"     ? buildKeyTab()     : ""}
           ${state.settingsTab === "profile" ? buildProfileTab() : ""}
           ${state.settingsTab === "backup"  ? buildBackupTab()  : ""}
         </div>
@@ -795,7 +780,7 @@ function buildProfileTab() {
 function buildBackupTab() {
   return `
     <h2>💾 גיבוי ושחזור</h2>
-    <p>הגיבוי כולל: מפתח API, פרופיל משפחתי ופעילויות שביצעת.</p>
+    <p>הגיבוי כולל: פרופיל משפחתי ופעילויות שביצעת.</p>
     <div class="backup-btns">
       <button class="btn-save" id="btn-export">⬇️ ייצוא</button>
       <label class="btn-import-label">
@@ -853,17 +838,6 @@ function attachEvents() {
   });
 
   // Save API key
-  const saveKeyBtn = document.getElementById("btn-save-key");
-  if (saveKeyBtn) saveKeyBtn.addEventListener("click", () => {
-    const val = document.getElementById("api-key-input").value.trim();
-    if (!val) return;
-    state.apiKey = val;
-    localStorage.setItem("mbriefing_key", val);
-    state.showSettings = false;
-    state.cache = {};
-    render();
-    fetchTab(state.activeTab);
-  });
 
   // Close modal
   const cancelBtn = document.getElementById("btn-cancel-modal");
@@ -953,12 +927,7 @@ function testConnection() {
 
 // ─── INIT ─────────────────────────────────────────────────────────────────────
 render();
-if (state.apiKey) {
-  fetchTab(state.activeTab);
-} else {
-  state.showSettings = true;
-  render();
-}
+fetchTab(state.activeTab);
 </script>
 </body>
 </html>
