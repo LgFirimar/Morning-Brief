@@ -371,11 +371,16 @@ const DATE_STR    = NOW.toLocaleDateString("he-IL", { weekday:"long", year:"nume
 const TIME_STR    = `${String(NOW.getHours()).padStart(2,"0")}:${String(NOW.getMinutes()).padStart(2,"0")}`;
 
 function getTimeWindow() {
-  const yesterday = new Date(NOW);
-  yesterday.setDate(yesterday.getDate() - 1);
-  const yStr      = yesterday.toLocaleDateString("he-IL", { weekday:"long", day:"numeric", month:"long" });
-  const todayStr  = NOW.toLocaleDateString("he-IL", { weekday:"long", day:"numeric", month:"long" });
-  return `${yStr} שעה 12:00 עד ${todayStr} שעה ${TIME_STR}`;
+  try {
+    const yesterday = new Date(NOW);
+    yesterday.setDate(yesterday.getDate() - 1);
+    const opts     = { weekday:"long", year:"numeric", month:"long", day:"numeric" };
+    const yStr     = yesterday.toLocaleDateString("he-IL", opts);
+    const todayStr = NOW.toLocaleDateString("he-IL", opts);
+    return `${yStr} 12:00 — ${todayStr} ${TIME_STR}`;
+  } catch {
+    return `yesterday 12:00 — today ${TIME_STR}`;
+  }
 }
 
 function getWeekendDates() {
@@ -922,16 +927,27 @@ function attachEvents() {
 // ─── CONNECTION TEST ──────────────────────────────────────────────────────────
 function testConnection() {
   const out = document.getElementById("test-out");
-  out.textContent = "Testing...";
-  const xhr = new XMLHttpRequest();
-  xhr.open("POST", API_URL + "/test");
-  xhr.setRequestHeader("Content-Type", "application/json");
-  xhr.timeout = 10000;
-  xhr.onload  = () => out.textContent = "✓ POST works! Status: " + xhr.status + " — " + xhr.responseText;
-  xhr.onerror = () => out.textContent = "✗ XHR error (network blocked)";
-  xhr.ontimeout = () => out.textContent = "✗ Timeout";
-  try { xhr.send(JSON.stringify({ test: true })); }
-  catch(e) { out.textContent = "✗ Exception: " + e.name + ": " + e.message; }
+  out.textContent = "Testing /test...";
+  const x1 = new XMLHttpRequest();
+  x1.open("POST", API_URL + "/test");
+  x1.setRequestHeader("Content-Type", "application/json");
+  x1.timeout = 10000;
+  x1.onload  = () => {
+    out.textContent = "✓ /test ok. Now testing root...";
+    const x2 = new XMLHttpRequest();
+    x2.open("POST", API_URL);
+    x2.setRequestHeader("Content-Type", "application/json");
+    x2.timeout = 10000;
+    x2.onload  = () => out.textContent = "✓ root ok (status " + x2.status + "). Now try נסי שוב.";
+    x2.onerror = () => out.textContent = "✗ root XHR error";
+    x2.ontimeout = () => out.textContent = "✗ root timeout";
+    try { x2.send(JSON.stringify({ test: true })); }
+    catch(e) { out.textContent = "✗ root exception: " + e.name + ": " + e.message; }
+  };
+  x1.onerror = () => out.textContent = "✗ /test XHR error";
+  x1.ontimeout = () => out.textContent = "✗ /test timeout";
+  try { x1.send(JSON.stringify({ test: true })); }
+  catch(e) { out.textContent = "✗ /test exception: " + e.name + ": " + e.message; }
 }
 
 // ─── INIT ─────────────────────────────────────────────────────────────────────
