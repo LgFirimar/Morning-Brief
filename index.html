@@ -467,16 +467,16 @@ async function fetchTab(tab) {
       const xhr = new XMLHttpRequest();
       xhr.open("POST", API_URL);
       xhr.setRequestHeader("Content-Type", "application/json");
-      xhr.timeout = 60000;
+      xhr.timeout = 90000;
       xhr.onload  = () => {
         try { resolve(JSON.parse(xhr.responseText)); }
         catch { reject(new Error(`HTTP ${xhr.status}: response not JSON`)); }
       };
       xhr.onerror   = () => reject(new Error("XHR network error"));
-      xhr.ontimeout = () => reject(new Error("Request timed out (60s)"));
+      xhr.ontimeout = () => reject(new Error("Request timed out (90s) — נסי שוב"));
       xhr.send(JSON.stringify({
         model:      MODEL,
-        max_tokens: 4000,
+        max_tokens: 2000,
         messages:   [{ role:"user", content: getPrompt(tab) }],
       }));
     });
