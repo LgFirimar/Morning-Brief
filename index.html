@@ -486,19 +486,19 @@ function interestsDesc() {
 function getPrompt(tab) {
   if (tab === "canada") return `Today is ${DATE_STR} in Toronto, Canada.
 Generate a morning briefing: exactly 5 Canada national news items (politics, culture, viral). Be concise.
-Each item: title (Hebrew ≤10 words), summary (2 Hebrew sentences), details (3 Hebrew sentences), category (פוליטיקה|חדשות|תרבות|ויראלי), emoji, url (""), reliability (גבוהה|בינונית|נמוכה).
+Each item: title (Hebrew ≤10 words), summary (2 Hebrew sentences), details (3 Hebrew sentences), category (פוליטיקה|חדשות|תרבות|ויראלי), emoji, url (""), reliability (גבוהה|בינונית|נמוכה), published (plausible recent date in Hebrew, e.g. "12 ביוני" or "אתמול").
 Return ONLY a raw JSON array. No markdown, no backticks, no explanation.`;
 
   if (tab === "toronto") return `Today is ${DATE_STR} in Toronto, Canada.
 Generate a morning briefing: exactly 5 Toronto local news items (city news, culture, viral). Be concise.
-Each item: title (Hebrew ≤10 words), summary (2 Hebrew sentences), details (3 Hebrew sentences), category (פוליטיקה|חדשות|תרבות|ויראלי), emoji, url (""), reliability (גבוהה|בינונית|נמוכה).
+Each item: title (Hebrew ≤10 words), summary (2 Hebrew sentences), details (3 Hebrew sentences), category (פוליטיקה|חדשות|תרבות|ויראלי), emoji, url (""), reliability (גבוהה|בינונית|נמוכה), published (plausible recent date in Hebrew, e.g. "12 ביוני" or "אתמול").
 Return ONLY a raw JSON array. No markdown, no backticks, no explanation.`;
 
   if (tab === "custom") {
     const country = COUNTRIES.find(c => c.key === state.customCountry) || COUNTRIES[0];
     return `Today is ${DATE_STR}.
 Generate a morning briefing: exactly 5 news items from/about ${country.label} (politics, culture, viral). Write everything in Hebrew. Be concise.
-Each item: title (Hebrew ≤10 words), summary (2 Hebrew sentences), details (3 Hebrew sentences), category (פוליטיקה|חדשות|תרבות|ויראלי), emoji, url (""), reliability (גבוהה|בינונית|נמוכה).
+Each item: title (Hebrew ≤10 words), summary (2 Hebrew sentences), details (3 Hebrew sentences), category (פוליטיקה|חדשות|תרבות|ויראלי), emoji, url (""), reliability (גבוהה|בינונית|נמוכה), published (plausible recent date in Hebrew, e.g. "12 ביוני" or "אתמול").
 Return ONLY a raw JSON array. No markdown, no backticks, no explanation.`;
   }
 
@@ -789,6 +789,7 @@ function buildCard(item, i, tab, isWeekend) {
               ${done ? `<span class="done-badge">✓ ביקרנו</span>` : ""}
             </div>
             <div class="card-title">${item.title}</div>
+            ${item.published ? `<div style="font-size:0.65rem;color:#aaa;margin-top:2px">🕐 ${item.published}</div>` : ""}
           </div>
         </div>
         <div class="card-summary">${item.summary}</div>
