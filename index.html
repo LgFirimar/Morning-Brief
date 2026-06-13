@@ -94,7 +94,8 @@
   .tab.active.toronto { color: #1a5276; }
   .tab.active.custom  { color: #c0711a; }
   .tab.active.weekend { color: #1e8449; }
-  .tab.active.done    { color: #7d3c98; }
+  .tab.active.done      { color: #7d3c98; }
+  .tab.active.favorites { color: #e67e22; }
   .tab-new {
     display: inline-block;
     background: #e74c3c;
@@ -176,6 +177,13 @@
     border-radius: 20px; padding: 3px 13px; cursor: pointer;
     transition: all 0.18s;
   }
+  .btn-fav {
+    font-size: 1rem; background: none; border: none;
+    cursor: pointer; padding: 2px 6px; opacity: 0.35;
+    transition: opacity 0.15s, transform 0.15s;
+  }
+  .btn-fav:hover  { opacity: 0.7; transform: scale(1.2); }
+  .btn-fav-active { opacity: 1 !important; }
   .btn-done-mark {
     font-size: 0.73rem; font-weight: 700;
     border-radius: 20px; padding: 3px 12px; cursor: pointer;
@@ -409,7 +417,7 @@
 <script>
 // ─── CONFIG ───────────────────────────────────────────────────────────────────
 const API_URL  = "https://morning-brief-api.lior0gal.workers.dev";
-const MODEL    = "claude-haiku-4-5-20251001";
+const MODEL    = "claude-sonnet-4-6";
 const INTERESTS_LIST = ["טבע", "תרבות", "הרפתקאה", "אמנות", "ספורט", "אוכל"];
 const COUNTRIES_MAIN  = [
   { key:"israel", label:"🇮🇱 ישראל" },
@@ -461,7 +469,8 @@ const TABS = [
   { key:"toronto", label:"🏙️ טורונטו", cls:"toronto", color:"#1a5276", bg:"#eaf4fb" },
   { key:"custom",  label:"🌍 אחר",     cls:"custom",  color:"#c0711a", bg:"#fef5ec" },
   { key:"weekend", label:"🎉 סופ״ש",   cls:"weekend", color:"#1e8449", bg:"#eafaf1" },
-  { key:"done",    label:"✅ ביקרנו",  cls:"done",    color:"#7d3c98", bg:"#f5eef8" },
+  { key:"done",      label:"✅ ביקרנו",   cls:"done",      color:"#7d3c98", bg:"#f5eef8" },
+  { key:"favorites", label:"⭐ הדלקת!",  cls:"favorites", color:"#e67e22", bg:"#fef5ec" },
 ];
 
 const DEFAULT_PROFILE = {
@@ -483,7 +492,8 @@ let state = {
   customCountry:      localStorage.getItem("mbriefing_country") || "israel",
   customDropdownOpen: false,
   profile:  JSON.parse(localStorage.getItem("mbriefing_profile") || JSON.stringify(DEFAULT_PROFILE)),
-  done:     JSON.parse(localStorage.getItem("mbriefing_done")    || "[]"),
+  done:      JSON.parse(localStorage.getItem("mbriefing_done")      || "[]"),
+  favorites: JSON.parse(localStorage.getItem("mbriefing_favorites") || "[]"),
 };
 
 // ─── PROFILE HELPERS ──────────────────────────────────────────────────────────
@@ -501,22 +511,24 @@ function interestsDesc() {
 }
 
 // ─── PROMPTS ─────────────────────────────────────────────────────────────────
+const NEWS_FIELDS = `title (כותרת בעברית תקנית ותמציתית, עד 10 מילים), summary (2 משפטים בעברית תקנית), details (3 משפטים בעברית תקנית עם הקשר נוסף), category (פוליטיקה|חדשות|תרבות|ויראלי), emoji, url (URL of the original article from a reputable news site, or "" if unknown), reliability (גבוהה|בינונית|נמוכה), published (תאריך פרסום משוער בעברית, למשל "12 ביוני" או "אתמול")`;
+
 function getPrompt(tab) {
   if (tab === "canada") return `Today is ${DATE_STR} in Toronto, Canada.
-Generate a morning briefing: exactly 5 Canada national news items (politics, culture, viral). Be concise.
-Each item: title (Hebrew ≤10 words), summary (2 Hebrew sentences), details (3 Hebrew sentences), category (פוליטיקה|חדשות|תרבות|ויראלי), emoji, url (""), reliability (גבוהה|בינונית|נמוכה), published (plausible recent date in Hebrew, e.g. "12 ביוני" or "אתמול").
+Write a morning news briefing in fluent, natural, high-quality Hebrew. Generate exactly 5 significant Canada national news items (politics, culture, viral).
+Each item: ${NEWS_FIELDS}.
 Return ONLY a raw JSON array. No markdown, no backticks, no explanation.`;
 
   if (tab === "toronto") return `Today is ${DATE_STR} in Toronto, Canada.
-Generate a morning briefing: exactly 5 Toronto local news items (city news, culture, viral). Be concise.
-Each item: title (Hebrew ≤10 words), summary (2 Hebrew sentences), details (3 Hebrew sentences), category (פוליטיקה|חדשות|תרבות|ויראלי), emoji, url (""), reliability (גבוהה|בינונית|נמוכה), published (plausible recent date in Hebrew, e.g. "12 ביוני" or "אתמול").
+Write a morning news briefing in fluent, natural, high-quality Hebrew. Generate exactly 5 significant Toronto local news items (city politics, culture, viral).
+Each item: ${NEWS_FIELDS}.
 Return ONLY a raw JSON array. No markdown, no backticks, no explanation.`;
 
   if (tab === "custom") {
     const country = COUNTRIES.find(c => c.key === state.customCountry) || COUNTRIES[0];
     return `Today is ${DATE_STR}.
-Generate a morning briefing: exactly 5 news items from/about ${country.label} (politics, culture, viral). Write everything in Hebrew. Be concise.
-Each item: title (Hebrew ≤10 words), summary (2 Hebrew sentences), details (3 Hebrew sentences), category (פוליטיקה|חדשות|תרבות|ויראלי), emoji, url (""), reliability (גבוהה|בינונית|נמוכה), published (plausible recent date in Hebrew, e.g. "12 ביוני" or "אתמול").
+Write a morning news briefing in fluent, natural, high-quality Hebrew. Generate exactly 5 news items from/about ${country.label} (politics, culture, viral).
+Each item: ${NEWS_FIELDS}.
 Return ONLY a raw JSON array. No markdown, no backticks, no explanation.`;
   }
 
@@ -524,8 +536,8 @@ Return ONLY a raw JSON array. No markdown, no backticks, no explanation.`;
     const wknd = getWeekendDates();
     return `Today is ${DATE_STR} in Toronto, Canada.
 Family: ${kidsDesc()}. Interests: ${interestsDesc()}.
-Generate exactly 6 weekend activities for this family, weekend of ${wknd}. North York / Toronto area, max 2hr drive. Be concise.
-Each item: title (Hebrew), summary (2 Hebrew sentences), details (3 Hebrew sentences with hours and cost), category (טבע|תרבות|הרפתקאה|אמנות|ספורט|אוכל), emoji, distance (~X דקות נסיעה), address (English), url ("").
+Write weekend activity recommendations in fluent, natural, high-quality Hebrew. Generate exactly 6 activities for this family, weekend of ${wknd}. North York / Toronto area, max 2hr drive.
+Each item: title (Hebrew), summary (2 משפטים בעברית תקנית), details (3 משפטים בעברית תקנית עם שעות ועלויות), category (טבע|תרבות|הרפתקאה|אמנות|ספורט|אוכל), emoji, distance (~X דקות נסיעה), address (English), url (website or "").
 Return ONLY a raw JSON array. No markdown, no backticks, no explanation.`;
   }
 }
@@ -555,7 +567,8 @@ async function callAPI(prompt) {
     xhr.ontimeout = () => reject(new Error("Request timed out (90s) — נסי שוב"));
     xhr.send(JSON.stringify({
       model:      MODEL,
-      max_tokens: 2000,
+      max_tokens: 3000,
+      system:     "אתה עיתונאי ישראלי מנוסה. כתוב תמיד בעברית רהוטה, טבעית ומדויקת — כאילו אתה חושב ישירות בעברית, לא מתרגם מאנגלית. השתמש במבנה משפטים עיתונאי ישראלי: קצר, ברור, ענייני. הימנע מתרגומים מילוליים ומבניות לועזית.",
       messages:   [{ role:"user", content: prompt }],
     }));
   });
@@ -578,7 +591,7 @@ function parseAPIResponse(data) {
 }
 
 async function fetchTab(tab) {
-  if (tab === "done") return;
+  if (tab === "done" || tab === "favorites") return;
 
   state.loading[tab] = true;
   state.errors[tab]  = null;
@@ -636,6 +649,27 @@ function unmarkDone(idx) {
 
 const isDone = title => state.done.some(d => d.title === title);
 
+// ─── FAVORITES ────────────────────────────────────────────────────────────────
+function toggleFavorite(tabKey, idx) {
+  const item = state.cache[tabKey]?.[idx] || state.weekendExtra[idx - (state.cache[tabKey]?.length || 0)];
+  if (!item) return;
+  if (isFavorite(item.title)) {
+    state.favorites = state.favorites.filter(f => f.title !== item.title);
+  } else {
+    state.favorites.unshift({ ...item, _favAt: new Date().toISOString() });
+  }
+  localStorage.setItem("mbriefing_favorites", JSON.stringify(state.favorites));
+  render();
+}
+
+function removeFavorite(idx) {
+  state.favorites.splice(idx, 1);
+  localStorage.setItem("mbriefing_favorites", JSON.stringify(state.favorites));
+  render();
+}
+
+const isFavorite = title => state.favorites.some(f => f.title === title);
+
 // ─── BACKUP ───────────────────────────────────────────────────────────────────
 function exportBackup() {
   const payload = {
@@ -669,7 +703,9 @@ function importBackup(file) {
 
 // ─── RENDER ───────────────────────────────────────────────────────────────────
 function render() {
+  const scrollY = window.scrollY;
   document.getElementById("app").innerHTML = buildHTML();
+  window.scrollTo(0, scrollY);
   attachEvents();
 }
 
@@ -693,7 +729,8 @@ function buildHTML() {
             <button class="tab ${t.cls}${state.activeTab === t.key ? " active" : ""}" data-tab="${t.key}">
               ${t.label}
               ${t.key === "weekend" && IS_THURSDAY ? `<span class="tab-new">חדש</span>` : ""}
-              ${t.key === "done" && state.done.length ? `<span class="tab-count">${state.done.length}</span>` : ""}
+              ${t.key === "done"      && state.done.length      ? `<span class="tab-count">${state.done.length}</span>`      : ""}
+              ${t.key === "favorites" && state.favorites.length ? `<span class="tab-count" style="background:#e67e22">${state.favorites.length}</span>` : ""}
             </button>
           `).join("")}
         </div>
@@ -705,7 +742,8 @@ function buildHTML() {
 }
 
 function buildTabContent(tabKey, tab) {
-  if (tabKey === "done") return buildDoneContent(tab);
+  if (tabKey === "done")      return buildDoneContent(tab);
+  if (tabKey === "favorites") return buildFavoritesContent(tab);
 
   // Custom tab: show country selector above the usual content
   const countrySelector = tabKey === "custom" ? buildCountrySelector() : "";
@@ -778,6 +816,52 @@ function buildCountrySelector() {
     </div>`;
 }
 
+function buildFavoritesContent(tab) {
+  if (!state.favorites.length) return `
+    <div class="loading">
+      <div class="loading-icon">⭐</div>
+      <div class="loading-text">לחצי ⭐ על פעילות סופ״ש כדי לשמור אותה כאן</div>
+    </div>`;
+  return `
+    <div class="done-section-header">
+      <div class="done-section-title" style="color:#e67e22">הדלקת!</div>
+      <div class="done-section-count">${state.favorites.length} פעילויות מועדפות</div>
+    </div>
+    ${state.favorites.map((item, i) => buildFavoriteCard(item, i, tab)).join("")}`;
+}
+
+function buildFavoriteCard(item, i, tab) {
+  const expKey = `fav-${i}`;
+  const isOpen = state.expanded[expKey];
+  return `
+    <div class="card" style="border-right: 3px solid #e67e22">
+      <div class="card-body">
+        <div class="card-top">
+          <span class="card-emoji">${item.emoji || "⭐"}</span>
+          <div style="flex:1;min-width:0">
+            <div class="card-meta">
+              <span class="badge" style="background:#fef5ec;color:#e67e22;border:1px solid #e67e2233">${item.category || ""}</span>
+              ${item.distance ? `<span style="font-size:0.68rem;color:#1e8449;font-weight:700">📍 ${item.distance}</span>` : ""}
+            </div>
+            <div class="card-title">${item.title}</div>
+          </div>
+        </div>
+        <div class="card-summary">${item.summary}</div>
+        ${item.address ? `<div class="card-address">📌 ${item.address}</div>` : ""}
+        <div class="card-actions">
+          ${item.url ? `<a class="btn-link" style="color:#e67e22" href="${item.url}" target="_blank" rel="noopener">אתר ↗</a>` : ""}
+          <button class="btn-undone" style="color:#e67e22;border-color:#e67e22;background:#fef5ec" data-unfav-idx="${i}">✕ הסר</button>
+          <button class="btn-expand"
+            style="background:${isOpen ? "#e67e22" : "#fff"};color:${isOpen ? "#fff" : "#e67e22"};border:1.5px solid #e67e22"
+            data-expand="${expKey}">
+            ${isOpen ? "סגור ▲" : "עוד ▼"}
+          </button>
+        </div>
+      </div>
+      ${isOpen ? `<div class="card-details" style="background:#fef5ec">${item.details}</div>` : ""}
+    </div>`;
+}
+
 function buildDoneContent(tab) {
   if (!state.done.length) return `
     <div class="loading">
@@ -827,7 +911,8 @@ function buildCard(item, i, tab, isWeekend) {
         <div class="card-summary">${item.summary}</div>
         ${item.address ? `<div class="card-address">📌 ${item.address}</div>` : ""}
         <div class="card-actions">
-          ${!isWeekend ? `<a class="btn-link" style="color:${tab.color}" href="https://www.google.com/search?q=${encodeURIComponent(item.title)}" target="_blank" rel="noopener">מקור ↗</a>` : (item.url ? `<a class="btn-link" style="color:${tab.color}" href="${item.url}" target="_blank" rel="noopener">אתר ↗</a>` : "")}
+          ${!isWeekend ? `<a class="btn-link" style="color:${tab.color}" href="${item.url && item.url.startsWith('http') ? item.url : 'https://news.google.com/search?q=' + encodeURIComponent(item.title) + '&hl=he'}" target="_blank" rel="noopener">מקור ↗</a>` : (item.url ? `<a class="btn-link" style="color:${tab.color}" href="${item.url}" target="_blank" rel="noopener">אתר ↗</a>` : "")}
+          ${isWeekend ? `<button class="btn-fav${isFavorite(item.title) ? " btn-fav-active" : ""}" data-fav-tab="${tab.key}" data-fav-idx="${i}" title="${isFavorite(item.title) ? "הסר ממועדפים" : "הוסף למועדפים"}">⭐</button>` : ""}
           ${isWeekend && !done ? `<button class="btn-done-mark" data-done-tab="${tab.key}" data-done-idx="${i}">✓ ביקרנו</button>` : ""}
           <button class="btn-expand"
             style="background:${isOpen ? tab.color : "#fff"};color:${isOpen ? "#fff" : tab.color};border:1.5px solid ${tab.color}"
@@ -952,7 +1037,7 @@ function attachEvents() {
     el.addEventListener("click", () => {
       const key = el.dataset.tab;
       state.activeTab = key;
-      if (key !== "done" && !state.cache[key] && !state.loading[key]) fetchTab(key);
+      if (key !== "done" && key !== "favorites" && !state.cache[key] && !state.loading[key]) fetchTab(key);
       else render();
     });
   });
@@ -975,6 +1060,16 @@ function attachEvents() {
   // Mark done
   document.querySelectorAll("[data-done-tab]").forEach(el => {
     el.addEventListener("click", () => markDone(el.dataset.doneTab, parseInt(el.dataset.doneIdx)));
+  });
+
+  // Star / unstar favorite
+  document.querySelectorAll("[data-fav-tab]").forEach(el => {
+    el.addEventListener("click", () => toggleFavorite(el.dataset.favTab, parseInt(el.dataset.favIdx)));
+  });
+
+  // Remove from favorites
+  document.querySelectorAll("[data-unfav-idx]").forEach(el => {
+    el.addEventListener("click", () => removeFavorite(parseInt(el.dataset.unfavIdx)));
   });
 
   // Unmark done
@@ -1086,7 +1181,9 @@ function attachEvents() {
 
 // ─── INIT ─────────────────────────────────────────────────────────────────────
 render();
-fetchTab(state.activeTab);
+fetchTab("canada");
+fetchTab("toronto");
+fetchTab("weekend");
 </script>
 </body>
 </html>
