@@ -23,11 +23,16 @@ export default {
     if (method === "GET") {
       const pathname  = new URL(request.url).pathname;
       const assetPath = pathname === "/" ? "" : pathname.slice(1);
-      const res       = await fetch(GITHUB_PAGES + assetPath, { cf: { cacheTtl: 120 } });
-      const ct        = res.headers.get("Content-Type") || "application/octet-stream";
+      const res     = await fetch(GITHUB_PAGES + assetPath, { cf: { cacheTtl: 60 } });
+      const ct      = res.headers.get("Content-Type") || "application/octet-stream";
+      const isHtml  = ct.includes("text/html");
       return new Response(res.body, {
         status:  res.status,
-        headers: { "Content-Type": ct, "Access-Control-Allow-Origin": "*" },
+        headers: {
+          "Content-Type":                ct,
+          "Access-Control-Allow-Origin": "*",
+          "Cache-Control":               isHtml ? "no-cache" : "public, max-age=86400",
+        },
       });
     }
 
