@@ -1061,12 +1061,16 @@ function attachEvents() {
     });
   });
 
-  // Open external URL — works on iOS standalone mode too
+  // Open external URL — navigator.standalone detects iOS home-screen mode
+  const isStandalone = !!window.navigator.standalone;
   document.querySelectorAll("[data-open]").forEach(el => {
     el.addEventListener("click", () => {
       const url = el.dataset.open;
-      const w = window.open(url, '_blank');
-      if (!w) window.location.href = url;
+      if (isStandalone) {
+        window.location.href = url;
+      } else {
+        window.open(url, '_blank', 'noopener');
+      }
     });
   });
 
