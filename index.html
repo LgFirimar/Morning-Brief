@@ -893,9 +893,12 @@ function buildReliabilityBadge(reliability) {
 }
 
 function buildCard(item, i, tab, isWeekend) {
-  const expKey = `${tab.key}-${i}`;
-  const isOpen = state.expanded[expKey];
-  const done   = isDone(item.title);
+  const expKey  = `${tab.key}-${i}`;
+  const isOpen  = state.expanded[expKey];
+  const done    = isDone(item.title);
+  const srcUrl  = (item.url && item.url.startsWith('http'))
+    ? item.url
+    : 'https://www.google.com/search?q=' + encodeURIComponent('"' + (item.title || '') + '"') + '&tbm=nws';
   return `
     <div class="card${done ? " card-done" : ""}">
       <div class="card-body">
@@ -915,7 +918,7 @@ function buildCard(item, i, tab, isWeekend) {
         <div class="card-summary">${item.summary}</div>
         ${item.address ? `<div class="card-address">📌 ${item.address}</div>` : ""}
         <div class="card-actions">
-          ${!isWeekend ? `<a class="btn-link" style="color:${tab.color}" href="${item.url && item.url.startsWith('http') ? item.url : 'https://www.google.com/search?q=' + encodeURIComponent('"' + item.title + '"') + '&tbm=nws'}" target="_blank" rel="noopener">מקור ↗</a>` : (item.url ? `<a class="btn-link" style="color:${tab.color}" href="${item.url}" target="_blank" rel="noopener">אתר ↗</a>` : "")}
+          ${!isWeekend ? `<a class="btn-link" style="color:${tab.color}" href="${srcUrl}" target="_blank" rel="noopener">מקור ↗</a>` : (item.url ? `<a class="btn-link" style="color:${tab.color}" href="${item.url}" target="_blank" rel="noopener">אתר ↗</a>` : "")}
           ${isWeekend ? `<button class="btn-fav${isFavorite(item.title) ? " btn-fav-active" : ""}" data-fav-tab="${tab.key}" data-fav-idx="${i}" title="${isFavorite(item.title) ? "הסר ממועדפים" : "הוסף למועדפים"}">⭐</button>` : ""}
           ${isWeekend && !done ? `<button class="btn-done-mark" data-done-tab="${tab.key}" data-done-idx="${i}">✓ ביקרנו</button>` : ""}
           <button class="btn-expand"
