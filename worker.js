@@ -13,20 +13,20 @@ const CORS = {
   "Access-Control-Allow-Headers": "Content-Type",
 };
 
-// ─── GOOGLE NEWS RSS URLS ─────────────────────────────────────────────────────
+// ─── DIRECT RSS FEEDS (no Google — works from Cloudflare IPs) ────────────────
 const RSS = {
-  canada:  "https://news.google.com/rss/search?q=canada+news+when:1d&hl=en-CA&gl=CA&ceid=CA:en",
-  toronto: "https://news.google.com/rss/search?q=toronto+news+when:1d&hl=en-CA&gl=CA&ceid=CA:en",
-  israel:  "https://news.google.com/rss/search?q=israel+news+when:1d&hl=en-IL&gl=IL&ceid=IL:iw",
-  world:   "https://news.google.com/rss/search?q=world+top+news+when:1d&hl=en-US&gl=US&ceid=US:en",
-  usa:     "https://news.google.com/rss/search?q=united+states+news+when:1d&hl=en-US&gl=US&ceid=US:en",
-  uk:      "https://news.google.com/rss/search?q=uk+britain+news+when:1d&hl=en-GB&gl=GB&ceid=GB:en",
-  france:  "https://news.google.com/rss/search?q=france+news+when:1d&hl=fr&gl=FR&ceid=FR:fr",
-  germany: "https://news.google.com/rss/search?q=germany+news+when:1d&hl=de&gl=DE&ceid=DE:de",
-  italy:   "https://news.google.com/rss/search?q=italy+news+when:1d&hl=it&gl=IT&ceid=IT:it",
-  spain:   "https://news.google.com/rss/search?q=spain+news+when:1d&hl=es&gl=ES&ceid=ES:es",
-  japan:   "https://news.google.com/rss/search?q=japan+news+when:1d&hl=ja&gl=JP&ceid=JP:ja",
-  india:   "https://news.google.com/rss/search?q=india+news+when:1d&hl=en-IN&gl=IN&ceid=IN:en",
+  canada:  "https://rss.cbc.ca/lineup/canada.xml",
+  toronto: "https://rss.cbc.ca/lineup/toronto.xml",
+  israel:  "https://www.timesofisrael.com/feed/",
+  world:   "https://feeds.bbci.co.uk/news/world/rss.xml",
+  usa:     "https://feeds.npr.org/1001/rss.xml",
+  uk:      "https://feeds.bbci.co.uk/news/uk/rss.xml",
+  france:  "https://www.lemonde.fr/rss/une.xml",
+  germany: "https://rss.dw.com/rdf/rss-en-all",
+  italy:   "https://feeds.bbci.co.uk/news/world/europe/rss.xml",
+  spain:   "https://feeds.bbci.co.uk/news/world/europe/rss.xml",
+  japan:   "https://www3.nhk.or.jp/rss/news/cat0.xml",
+  india:   "https://feeds.bbci.co.uk/news/world/asia/rss.xml",
 };
 
 const HEADINGS = {
