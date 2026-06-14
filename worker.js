@@ -1,37 +1,153 @@
 // Morning Brief — Cloudflare Worker
-// GET  / → serves the app (fetched from GitHub Pages)
-// POST / → proxies to Anthropic using server-side secret key
+// GET  /          → serves app HTML from GitHub Pages
+// GET  /icon.png  → proxies static assets from GitHub Pages
+// POST /          → { tab } → Brave Search + Claude briefing (prose)
+// POST /          → { model, messages } → legacy Anthropic proxy (weekend activities)
 
-const ANTHROPIC_API = "https://api.anthropic.com/v1/messages";
-const GITHUB_PAGES  = "https://lgfirimar.github.io/Morning-Brief/";
+const ANTHROPIC_API  = "https://api.anthropic.com/v1/messages";
+const BRAVE_NEWS_API = "https://api.search.brave.com/res/v1/news/search";
+const GITHUB_PAGES   = "https://lgfirimar.github.io/Morning-Brief/";
+const MODEL          = "claude-sonnet-4-6";
 
+const CORS = {
+  "Access-Control-Allow-Origin":  "*",
+  "Access-Control-Allow-Methods": "POST, GET, OPTIONS",
+  "Access-Control-Allow-Headers": "Content-Type",
+};
+
+// ─── COUNTRY CONFIG ───────────────────────────────────────────────────────────
+const COUNTRY_CFG = {
+  canada:  { q: "Canada national news today",  cc: "CA", heading: "🇨🇦 קנדה"     },
+  toronto: { q: "Toronto city news today",     cc: "CA", heading: "🏙️ טורונטו"  },
+  israel:  { q: "Israel news today",           cc: "IL", heading: "🇮🇱 ישראל"    },
+  world:   { q: "World international news today", cc: "US", heading: "🌍 עולם"   },
+  usa:     { q: "United States news today",    cc: "US", heading: "🇺🇸 ארה״ב"   },
+  uk:      { q: "United Kingdom news today",   cc: "GB", heading: "🇬🇧 בריטניה" },
+  france:  { q: "France news today",           cc: "FR", heading: "🇫🇷 צרפת"    },
+  germany: { q: "Germany news today",          cc: "DE", heading: "🇩🇪 גרמניה"  },
+  italy:   { q: "Italy news today",            cc: "IT", heading: "🇮🇹 איטליה"  },
+  spain:   { q: "Spain news today",            cc: "ES", heading: "🇪🇸 ספרד"    },
+  japan:   { q: "Japan news today",            cc: "JP", heading: "🇯🇵 יפן"     },
+  india:   { q: "India news today",            cc: "IN", heading: "🇮🇳 הודו"    },
+};
+
+const SYSTEM_PROMPT = `אתה עיתונאי ישראלי מנוסה המכין בריפינג חדשות בוקר.
+כתוב בעברית רהוטה, מקצועית ותמציתית — לא מתרגם מאנגלית, חושב ישירות בעברית.
+השתמש אך ורק ב-URLs שסופקו בתוצאות החיפוש. לעולם אל תמציא כתובות.
+אל תכתוב מבוא — עבור ישירות לתוכן.`;
+
+const FORMAT_INSTRUCTIONS = `
+פרמוט כל ידיעה:
+
+**[אמוג'י + כותרת נושא]**
+
+פרוזה רציפה, 3-5 משפטים. אם יש שרשרת סיבתית, הצג אותה בפירוש:
+"הכל התחיל ב... → בתגובה... → כתוצאה מכך..."
+
+מקור: [שם המקור](URL)
+
+---
+
+אמוג'י לפי קטגוריה: 🔴 ביטחון | 🛡️ צבאי | 📊 פוליטיקה | 💰 כלכלה | 🌍 דיפלומטיה | 🏙️ עירוני | ⚽ ספורט | 📱 טכנולוגיה
+
+בסוף הבריפינג הוסף:
+
+## 📰 הערכת מקורות
+
+| מקור | נטייה פוליטית | אמינות |
+|---|---|---|
+| שם | ניטרלי / מרכז / שמאל-מרכז / ימין-מרכז | ⭐⭐⭐⭐ |
+
+כלול רק מקורות שהופיעו בידיעות לעיל.
+נטייה פוליטית בעברית. אמינות: ⭐⭐⭐⭐⭐ = אמין מאוד, ⭐⭐⭐⭐ = אמין, ⭐⭐⭐ = בינוני.`;
+
+// ─── BRAVE SEARCH ─────────────────────────────────────────────────────────────
+async function braveSearch(query, countryCode, env) {
+  if (!env.BRAVE_API_KEY) return "";
+  try {
+    const params = new URLSearchParams({
+      q:           query,
+      count:       "10",
+      country:     countryCode,
+      search_lang: "en",
+      freshness:   "pd",
+    });
+    const res = await fetch(`${BRAVE_NEWS_API}?${params}`, {
+      headers: {
+        "Accept":               "application/json",
+        "X-Subscription-Token": env.BRAVE_API_KEY,
+      },
+    });
+    if (!res.ok) return "";
+    const data = await res.json();
+    return (data.results || []).slice(0, 10).map((r, i) =>
+      `[${i + 1}] ${r.title}\nURL: ${r.url}\nמקור: ${r.meta_url?.netloc || ""}\nתקציר: ${r.description || ""}\nפרסום: ${r.age || "היום"}`
+    ).join("\n\n");
+  } catch {
+    return "";
+  }
+}
+
+// ─── NEWS HANDLER ─────────────────────────────────────────────────────────────
+async function handleNewsTab(body, env) {
+  const { tab, customCountry, dateStr } = body;
+  const key = tab === "custom" ? (customCountry || "israel") : tab;
+  const cfg = COUNTRY_CFG[key] || COUNTRY_CFG.canada;
+
+  const results = await braveSearch(cfg.q, cfg.cc, env);
+
+  const userPrompt = `תאריך: ${dateStr}
+
+תוצאות חיפוש עדכניות — ${cfg.heading}:
+${results || "לא נמצאו תוצאות חיפוש — השתמש בידע כללי עדכני."}
+
+---
+${FORMAT_INSTRUCTIONS}
+
+כתוב בריפינג חדשות עם כותרת: ## 🗓️ ${cfg.heading} — ${dateStr}
+הגש 4-5 ידיעות מהחשובות ביותר לפחות חשובות.`;
+
+  const upstream = await fetch(ANTHROPIC_API, {
+    method:  "POST",
+    headers: {
+      "Content-Type":      "application/json",
+      "x-api-key":         env.ANTHROPIC_API_KEY,
+      "anthropic-version": "2023-06-01",
+    },
+    body: JSON.stringify({
+      model:      MODEL,
+      max_tokens: 4000,
+      system:     SYSTEM_PROMPT,
+      messages:   [{ role: "user", content: userPrompt }],
+    }),
+  });
+
+  const data = await upstream.json();
+  if (data.error) return { error: data.error };
+  const text = (data.content || []).filter(b => b.type === "text").map(b => b.text).join("");
+  return { content: text };
+}
+
+// ─── MAIN ─────────────────────────────────────────────────────────────────────
 export default {
   async fetch(request, env) {
     const method = request.method;
 
     if (method === "OPTIONS") {
-      return new Response(null, {
-        status: 204,
-        headers: {
-          "Access-Control-Allow-Origin":  "*",
-          "Access-Control-Allow-Methods": "POST, GET, OPTIONS",
-          "Access-Control-Allow-Headers": "Content-Type",
-        },
-      });
+      return new Response(null, { status: 204, headers: CORS });
     }
 
     if (method === "GET") {
       const pathname  = new URL(request.url).pathname;
       const assetPath = pathname === "/" ? "" : pathname.slice(1);
-      const res     = await fetch(GITHUB_PAGES + assetPath, { cf: { cacheTtl: 60 } });
-      const ct      = res.headers.get("Content-Type") || "application/octet-stream";
-      const isHtml  = ct.includes("text/html");
+      const res       = await fetch(GITHUB_PAGES + assetPath, { cf: { cacheTtl: 60 } });
+      const ct        = res.headers.get("Content-Type") || "application/octet-stream";
       return new Response(res.body, {
         status:  res.status,
         headers: {
-          "Content-Type":                ct,
+          "Content-Type":              ct,
           "Access-Control-Allow-Origin": "*",
-          "Cache-Control":               isHtml ? "no-cache" : "public, max-age=86400",
+          "Cache-Control":             ct.includes("text/html") ? "no-cache" : "public, max-age=86400",
         },
       });
     }
@@ -39,7 +155,7 @@ export default {
     if (method === "POST") {
       if (new URL(request.url).pathname === "/test") {
         return new Response(JSON.stringify({ ok: true }), {
-          headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" },
+          headers: { "Content-Type": "application/json", ...CORS },
         });
       }
 
@@ -51,6 +167,15 @@ export default {
         });
       }
 
+      // News tab request → Brave Search + Claude
+      if (body.tab) {
+        const result = await handleNewsTab(body, env);
+        return new Response(JSON.stringify(result), {
+          headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" },
+        });
+      }
+
+      // Legacy Anthropic proxy (weekend activities)
       const upstream = await fetch(ANTHROPIC_API, {
         method:  "POST",
         headers: {
@@ -60,13 +185,9 @@ export default {
         },
         body: JSON.stringify(body),
       });
-
       return new Response(await upstream.text(), {
         status:  upstream.status,
-        headers: {
-          "Content-Type":                "application/json",
-          "Access-Control-Allow-Origin": "*",
-        },
+        headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" },
       });
     }
 

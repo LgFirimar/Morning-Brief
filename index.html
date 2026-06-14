@@ -412,6 +412,39 @@
     background: #f8f9fc; border-radius: 10px; padding: 12px;
     font-size: 0.78rem; color: #666; line-height: 1.9;
   }
+
+  /* PROSE NEWS FORMAT */
+  .prose-content { font-size: 0.88rem; line-height: 1.8; color: #222; direction: rtl; }
+  .prose-content h1, .prose-content h2 {
+    font-size: 1rem; font-weight: 900; color: #0f3460;
+    margin: 22px 0 10px; letter-spacing: -0.2px;
+  }
+  .prose-content h2:first-child { margin-top: 0; }
+  .prose-content p { margin: 0 0 10px; }
+  .prose-content strong {
+    font-size: 0.92rem; font-weight: 800; color: #111;
+    display: block; margin: 18px 0 6px;
+  }
+  .prose-content strong:first-child { margin-top: 0; }
+  .prose-content hr { border: none; border-top: 1px solid #e8eaf0; margin: 18px 0; }
+  .prose-link {
+    color: #1a5276; font-weight: 600; text-decoration: underline;
+    cursor: pointer; background: none; border: none; padding: 0;
+    font-size: inherit; font-family: inherit; line-height: inherit;
+  }
+  .prose-link:hover { color: #0f3460; }
+  .source-table {
+    width: 100%; border-collapse: collapse; font-size: 0.75rem;
+    margin: 10px 0; border-radius: 10px; overflow: hidden;
+  }
+  .source-table th {
+    padding: 7px 12px; background: #e8eaf0;
+    font-weight: 700; text-align: right; color: #444;
+  }
+  .source-table td {
+    padding: 7px 12px; border-top: 1px solid #e8eaf0;
+    text-align: right; color: #555;
+  }
 </style>
 </head>
 <body>
@@ -485,6 +518,7 @@ const DEFAULT_PROFILE = {
 // ─── STATE ────────────────────────────────────────────────────────────────────
 let state = {
   activeTab:     "canada",
+  prose:         {},
   cache:         {},
   loading:       {},
   errors:        {},
@@ -514,28 +548,8 @@ function interestsDesc() {
   return state.profile.interests.length ? state.profile.interests.join(", ") : "כללי";
 }
 
-// ─── PROMPTS ─────────────────────────────────────────────────────────────────
-const NEWS_FIELDS = `title (כותרת בעברית תקנית ותמציתית, עד 10 מילים), summary (2 משפטים בעברית תקנית), details (3 משפטים בעברית תקנית עם הקשר נוסף), category (פוליטיקה|חדשות|תרבות|ויראלי), emoji, source (name of the news outlet in English, e.g. "CBC News", "Toronto Star", "Globe and Mail", "Reuters"), url (article URL if you are confident it exists — e.g. https://www.cbc.ca/news/canada/...; otherwise ""), reliability (גבוהה|בינונית|נמוכה), published (תאריך פרסום משוער בעברית, למשל "12 ביוני" או "אתמול")`;
-
+// ─── PROMPTS (weekend only — news tabs handled server-side with Brave Search) ──
 function getPrompt(tab) {
-  if (tab === "canada") return `Today is ${DATE_STR} in Toronto, Canada.
-Write a morning news briefing in fluent, natural, high-quality Hebrew. Generate exactly 5 significant Canada national news items (politics, culture, viral).
-Each item: ${NEWS_FIELDS}.
-Return ONLY a raw JSON array. No markdown, no backticks, no explanation.`;
-
-  if (tab === "toronto") return `Today is ${DATE_STR} in Toronto, Canada.
-Write a morning news briefing in fluent, natural, high-quality Hebrew. Generate exactly 5 significant Toronto local news items (city politics, culture, viral).
-Each item: ${NEWS_FIELDS}.
-Return ONLY a raw JSON array. No markdown, no backticks, no explanation.`;
-
-  if (tab === "custom") {
-    const country = COUNTRIES.find(c => c.key === state.customCountry) || COUNTRIES[0];
-    return `Today is ${DATE_STR}.
-Write a morning news briefing in fluent, natural, high-quality Hebrew. Generate exactly 5 news items from/about ${country.label} (politics, culture, viral).
-Each item: ${NEWS_FIELDS}.
-Return ONLY a raw JSON array. No markdown, no backticks, no explanation.`;
-  }
-
   if (tab === "weekend") {
     const wknd = getWeekendDates();
     return `Today is ${DATE_STR} in Toronto, Canada.
@@ -556,7 +570,23 @@ Each item: title (Hebrew), summary (2 Hebrew sentences), details (3 Hebrew sente
 Return ONLY a raw JSON array. No markdown, no backticks, no explanation.`;
 }
 
-// ─── API CALL ─────────────────────────────────────────────────────────────────
+// ─── API CALLS ────────────────────────────────────────────────────────────────
+async function callNewsTab(tab) {
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open("POST", API_URL);
+    xhr.setRequestHeader("Content-Type", "application/json");
+    xhr.timeout = 120000;
+    xhr.onload  = () => {
+      try { resolve(JSON.parse(xhr.responseText)); }
+      catch { reject(new Error(`HTTP ${xhr.status}: response not JSON`)); }
+    };
+    xhr.onerror   = () => reject(new Error("XHR network error"));
+    xhr.ontimeout = () => reject(new Error("Request timed out (120s) — נסי שוב"));
+    xhr.send(JSON.stringify({ tab, customCountry: state.customCountry, dateStr: DATE_STR }));
+  });
+}
+
 async function callAPI(prompt) {
   return new Promise((resolve, reject) => {
     const xhr = new XMLHttpRequest();
@@ -602,12 +632,17 @@ async function fetchTab(tab) {
   render();
 
   try {
-    const data   = await callAPI(getPrompt(tab));
-    const parsed = parseAPIResponse(data);
-    state.cache[tab] = parsed;
+    if (tab === "weekend") {
+      const data   = await callAPI(getPrompt("weekend"));
+      const parsed = parseAPIResponse(data);
+      state.cache[tab] = parsed;
+    } else {
+      const data = await callNewsTab(tab);
+      if (data.error) throw new Error(data.error.message || "שגיאה");
+      state.prose[tab] = data.content;
+    }
   } catch(e) {
-    const msg = e?.message || "";
-    state.errors[tab] = msg || "שגיאה בטעינה. נסי שוב.";
+    state.errors[tab] = e?.message || "שגיאה בטעינה. נסי שוב.";
   } finally {
     state.loading[tab] = false;
     render();
@@ -713,6 +748,55 @@ function render() {
   attachEvents();
 }
 
+// ─── MARKDOWN RENDERER ────────────────────────────────────────────────────────
+function inlineMd(text) {
+  return text
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\[([^\]]+)\]\(([^)]+)\)/g, (_, t, u) =>
+      `<button class="prose-link" data-open="${u}">${t}</button>`)
+    .replace(/`(.+?)`/g, '<code>$1</code>');
+}
+
+function buildMdTable(lines) {
+  const rows = lines.filter(l => !/^\|[\s\-:|]+\|$/.test(l.trim()));
+  if (!rows.length) return '';
+  let html = '<table class="source-table"><thead>';
+  rows.forEach((row, i) => {
+    const cells = row.split('|').slice(1, -1).map(c => c.trim());
+    if (i === 1) html += '</thead><tbody>';
+    const tag = i === 0 ? 'th' : 'td';
+    html += '<tr>' + cells.map(c => `<${tag}>${inlineMd(c)}</${tag}>`).join('') + '</tr>';
+  });
+  html += '</tbody></table>';
+  return html;
+}
+
+function renderMarkdown(md) {
+  if (!md) return '';
+  const lines = md.split('\n');
+  let html = '', tableLines = [], inTable = false;
+
+  const flushTable = () => {
+    if (tableLines.length) { html += buildMdTable(tableLines); tableLines = []; }
+    inTable = false;
+  };
+
+  for (const line of lines) {
+    if (line.trim().startsWith('|')) {
+      inTable = true;
+      tableLines.push(line);
+    } else {
+      if (inTable) flushTable();
+      if      (line.startsWith('## ')) html += `<h2>${inlineMd(line.slice(3))}</h2>`;
+      else if (line.startsWith('# '))  html += `<h1>${inlineMd(line.slice(2))}</h1>`;
+      else if (line.trim() === '---')  html += '<hr>';
+      else if (line.trim())            html += `<p>${inlineMd(line)}</p>`;
+    }
+  }
+  if (inTable) flushTable();
+  return html;
+}
+
 function buildHTML() {
   const tab = TABS.find(t => t.key === state.activeTab);
   return `
@@ -749,10 +833,9 @@ function buildTabContent(tabKey, tab) {
   if (tabKey === "done")      return buildDoneContent(tab);
   if (tabKey === "favorites") return buildFavoritesContent(tab);
 
-  // Custom tab: show country selector above the usual content
   const countrySelector = tabKey === "custom" ? buildCountrySelector() : "";
 
-  // Weekend shortcut bar — shown in all states
+  // Weekend shortcut bar
   const weekendBar = tabKey === "weekend" ? `
     <div class="refresh-row" style="justify-content:space-between">
       <div style="display:flex;gap:6px">
@@ -762,51 +845,59 @@ function buildTabContent(tabKey, tab) {
       <button class="btn-refresh" style="border:1.5px solid ${tab.color};color:${tab.color}" data-retry="${tabKey}">🔄 רענן</button>
     </div>` : "";
 
+  const loadingText = tabKey === "weekend" ? "טוענת פעילויות..." : "מחפש חדשות עדכניות ברשת...";
+
   if (state.loading[tabKey]) return `
-    ${weekendBar}
-    ${countrySelector}
+    ${weekendBar}${countrySelector}
     <div class="loading">
-      <div class="loading-icon">📰</div>
-      <div class="loading-text">טוענת חדשות טריות...</div>
+      <div class="loading-icon">${tabKey === "weekend" ? "🎉" : "🌐"}</div>
+      <div class="loading-text">${loadingText}</div>
       <div class="loading-bar"><div class="loading-bar-inner" style="background:${tab.color}"></div></div>
     </div>`;
 
   if (state.errors[tabKey]) return `
-    ${weekendBar}
-    ${countrySelector}
+    ${weekendBar}${countrySelector}
     <div class="error-box">
       <div>${state.errors[tabKey]}</div>
       <button class="btn-retry" style="background:${tab.color}" data-retry="${tabKey}">נסי שוב</button>
     </div>`;
 
-  const items = state.cache[tabKey];
-  if (!items) return `
+  // ── NEWS TABS: prose format ──────────────────────────────────────────────────
+  if (tabKey !== "weekend") {
+    const prose = state.prose[tabKey];
+    if (!prose) return `
+      ${countrySelector}
+      <div class="loading">
+        <div class="loading-icon">🔍</div>
+        <div class="loading-text">לחצי טעינה להתחיל</div>
+        <button class="btn-retry" style="background:${tab.color};display:inline-block;margin-top:14px" data-retry="${tabKey}">טעני עכשיו</button>
+      </div>`;
+    return `
+      ${countrySelector}
+      <div class="refresh-row">
+        <button class="btn-refresh" style="border:1.5px solid ${tab.color};color:${tab.color}" data-retry="${tabKey}">🔄 רענן</button>
+      </div>
+      <div class="card prose-content" style="padding:18px 16px 14px">
+        ${renderMarkdown(prose)}
+      </div>`;
+  }
+
+  // ── WEEKEND TAB: activity cards ──────────────────────────────────────────────
+  const allWeekend = (state.cache.weekend || []).concat(state.weekendExtra);
+  if (!allWeekend.length) return `
     ${weekendBar}
-    ${countrySelector}
     <div class="loading">
       <div class="loading-icon">🔍</div>
       <div class="loading-text">לחצי טעינה להתחיל</div>
       <button class="btn-retry" style="background:${tab.color};display:inline-block;margin-top:14px" data-retry="${tabKey}">טעני עכשיו</button>
     </div>`;
-
-  // Weekend tab: combine base + extra items, show load-more button
-  if (tabKey === "weekend") {
-    const allWeekend = (state.cache.weekend || []).concat(state.weekendExtra);
-    return `
-      ${weekendBar}
-      ${allWeekend.map((item, i) => buildCard(item, i, tab, true)).join("")}
-      ${state.loadingMore
-        ? `<div class="loading" style="padding:22px 0"><div class="loading-bar" style="margin:0 auto"><div class="loading-bar-inner" style="background:${tab.color}"></div></div></div>`
-        : `<button class="btn-load-more" id="btn-load-more">טען עוד ▼</button>`
-      }`;
-  }
-
   return `
-    ${countrySelector}
-    <div class="refresh-row">
-      <button class="btn-refresh" style="border:1.5px solid ${tab.color};color:${tab.color}" data-retry="${tabKey}">🔄 רענן</button>
-    </div>
-    ${items.map((item, i) => buildCard(item, i, tab, false)).join("")}`;
+    ${weekendBar}
+    ${allWeekend.map((item, i) => buildCard(item, i, tab, true)).join("")}
+    ${state.loadingMore
+      ? `<div class="loading" style="padding:22px 0"><div class="loading-bar" style="margin:0 auto"><div class="loading-bar-inner" style="background:${tab.color}"></div></div></div>`
+      : `<button class="btn-load-more" id="btn-load-more">טען עוד ▼</button>`
+    }`;
 }
 
 function buildCountrySelector() {
@@ -1084,6 +1175,7 @@ function attachEvents() {
     el.addEventListener("click", () => {
       const key = el.dataset.retry;
       state.cache[key] = null;
+      state.prose[key] = null;
       if (key === "weekend") { state.weekendExtra = []; }
       fetchTab(key);
     });
@@ -1199,6 +1291,7 @@ function attachEvents() {
       state.customCountry = key;
       localStorage.setItem("mbriefing_country", key);
       state.cache.custom = null;
+      state.prose.custom = null;
       fetchTab("custom");
     });
   });
