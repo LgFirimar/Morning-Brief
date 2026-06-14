@@ -721,7 +721,7 @@ function buildHTML() {
       <div style="max-width:620px;margin:0 auto">
         <div class="header-top">
           <div>
-            <div class="header-eyebrow">MORNING BRIEFING · v13</div>
+            <div class="header-eyebrow">MORNING BRIEFING</div>
             <div class="header-title">☀️ בוקר טוב, ליאור</div>
             <div class="header-date">${DATE_STR}</div>
           </div>
@@ -752,7 +752,18 @@ function buildTabContent(tabKey, tab) {
   // Custom tab: show country selector above the usual content
   const countrySelector = tabKey === "custom" ? buildCountrySelector() : "";
 
+  // Weekend shortcut bar — shown in all states
+  const weekendBar = tabKey === "weekend" ? `
+    <div class="refresh-row" style="justify-content:space-between">
+      <div style="display:flex;gap:6px">
+        <button class="btn-refresh" style="border:1.5px solid #7d3c98;color:#7d3c98" data-switch-tab="done">✅ ביקרנו${state.done.length ? ` (${state.done.length})` : ""}</button>
+        <button class="btn-refresh" style="border:1.5px solid #e67e22;color:#e67e22" data-switch-tab="favorites">⭐ הדלקת!${state.favorites.length ? ` (${state.favorites.length})` : ""}</button>
+      </div>
+      <button class="btn-refresh" style="border:1.5px solid ${tab.color};color:${tab.color}" data-retry="${tabKey}">🔄 רענן</button>
+    </div>` : "";
+
   if (state.loading[tabKey]) return `
+    ${weekendBar}
     ${countrySelector}
     <div class="loading">
       <div class="loading-icon">📰</div>
@@ -761,6 +772,7 @@ function buildTabContent(tabKey, tab) {
     </div>`;
 
   if (state.errors[tabKey]) return `
+    ${weekendBar}
     ${countrySelector}
     <div class="error-box">
       <div>${state.errors[tabKey]}</div>
@@ -769,6 +781,7 @@ function buildTabContent(tabKey, tab) {
 
   const items = state.cache[tabKey];
   if (!items) return `
+    ${weekendBar}
     ${countrySelector}
     <div class="loading">
       <div class="loading-icon">🔍</div>
@@ -780,13 +793,7 @@ function buildTabContent(tabKey, tab) {
   if (tabKey === "weekend") {
     const allWeekend = (state.cache.weekend || []).concat(state.weekendExtra);
     return `
-      <div class="refresh-row" style="justify-content:space-between">
-        <div style="display:flex;gap:6px">
-          <button class="btn-refresh" style="border:1.5px solid #7d3c98;color:#7d3c98" data-switch-tab="done">✅ ביקרנו${state.done.length ? ` (${state.done.length})` : ""}</button>
-          <button class="btn-refresh" style="border:1.5px solid #e67e22;color:#e67e22" data-switch-tab="favorites">⭐ הדלקת!${state.favorites.length ? ` (${state.favorites.length})` : ""}</button>
-        </div>
-        <button class="btn-refresh" style="border:1.5px solid ${tab.color};color:${tab.color}" data-retry="${tabKey}">🔄 רענן</button>
-      </div>
+      ${weekendBar}
       ${allWeekend.map((item, i) => buildCard(item, i, tab, true)).join("")}
       ${state.loadingMore
         ? `<div class="loading" style="padding:22px 0"><div class="loading-bar" style="margin:0 auto"><div class="loading-bar-inner" style="background:${tab.color}"></div></div></div>`
