@@ -200,6 +200,70 @@ const SOURCES_FORMAT = `
 אמינות: [⭐ עד ⭐⭐⭐⭐⭐]
 הערה: [משפט אחד על מהימנות מול פייק ניוז]`;
 
+// ─── WEEKEND HANDLER ─────────────────────────────────────────────────────────
+const WEEKEND_RSS = [
+  { url: "https://nowtoronto.com/events/feed/" },
+  { url: "https://nowtoronto.com/feed/" },
+  { url: "https://globalnews.ca/toronto/feed/" },
+  { url: "https://www.toronto.ca/news/feed/" },
+];
+
+async function handleWeekendTab(body, env) {
+  const { kidsDesc, interestsDesc, weekendDates, dateStr } = body;
+
+  const results = await Promise.allSettled(WEEKEND_RSS.map(fetchSingleRSS));
+  const seen = new Set();
+  const events = [];
+  for (const r of results) {
+    if (r.status !== "fulfilled") continue;
+    for (const item of r.value) {
+      if (!seen.has(item.title)) { seen.add(item.title); events.push(item); }
+    }
+  }
+
+  const eventsContext = events.slice(0, 15)
+    .map(i => `שם: ${i.title}\nURL: ${i.link}\nתיאור: ${i.desc}`)
+    .join("\n---\n");
+
+  const prompt = `תאריך: ${dateStr}. סוף שבוע: ${weekendDates}.
+משפחה בטורונטו / North York: ${kidsDesc}. תחומי עניין: ${interestsDesc}.
+
+פעילויות ואירועים עדכניים בטורונטו עם קישורים אמיתיים:
+${eventsContext || "אין נתונים מ-RSS — השתמש בידע שלך על טורונטו."}
+
+בחר 6 פעילויות מתאימות למשפחה. לכל פעילות:
+- title: שם בעברית
+- summary: 2 משפטים בעברית
+- details: 3 משפטים עם שעות ועלויות
+- category: טבע|תרבות|הרפתקאה|אמנות|ספורט|אוכל
+- emoji
+- distance: ~X דקות נסיעה מ-North York
+- address: כתובת באנגלית
+- url: אם יש URL מהרשימה שמתאים — השתמש בו. אחרת, האתר הרשמי של המקום (לא גוגל, לא דף כללי — ישירות לאטרקציה).
+
+החזר JSON array בלבד. ללא markdown, ללא הסבר.`;
+
+  const upstream = await fetch(ANTHROPIC_API, {
+    method:  "POST",
+    headers: {
+      "Content-Type":      "application/json",
+      "x-api-key":         env.ANTHROPIC_API_KEY,
+      "anthropic-version": "2023-06-01",
+    },
+    body: JSON.stringify({
+      model:      MODEL,
+      max_tokens: 3000,
+      system:     "אתה מדריך טיולים ומומחה לטורונטו. כתוב בעברית רהוטה. החזר JSON בלבד ללא כל טקסט נוסף.",
+      messages:   [{ role: "user", content: prompt }],
+    }),
+  });
+
+  const data = await upstream.json();
+  if (data.error) return { error: data.error };
+  const text = (data.content || []).filter(b => b.type === "text").map(b => b.text).join("");
+  return { content: text, sources: "" };
+}
+
 // ─── NEWS HANDLER ─────────────────────────────────────────────────────────────
 async function handleNewsTab(body, env) {
   const { tab, customCountry, dateStr } = body;
@@ -283,7 +347,15 @@ export default {
         });
       }
 
-      // News tab → Google News RSS + Claude
+      // Weekend tab → Toronto events RSS + Claude (returns JSON array)
+      if (body.tab === "weekend") {
+        const result = await handleWeekendTab(body, env);
+        return new Response(JSON.stringify(result), {
+          headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" },
+        });
+      }
+
+      // News tabs → direct RSS + Claude (returns markdown)
       if (body.tab) {
         const result = await handleNewsTab(body, env);
         return new Response(JSON.stringify(result), {
@@ -291,7 +363,7 @@ export default {
         });
       }
 
-      // Anthropic proxy (weekend activities)
+      // Anthropic proxy (load more weekend)
       const upstream = await fetch(ANTHROPIC_API, {
         method:  "POST",
         headers: {

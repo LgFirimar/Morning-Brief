@@ -607,7 +607,14 @@ async function callNewsTab(tab) {
     };
     xhr.onerror   = () => reject(new Error("XHR network error"));
     xhr.ontimeout = () => reject(new Error("Request timed out (120s) — נסי שוב"));
-    xhr.send(JSON.stringify({ tab, customCountry: state.customCountry, dateStr: DATE_STR }));
+    xhr.send(JSON.stringify({
+      tab,
+      customCountry:  state.customCountry,
+      dateStr:        DATE_STR,
+      kidsDesc:       kidsDesc(),
+      interestsDesc:  interestsDesc(),
+      weekendDates:   getWeekendDates(),
+    }));
   });
 }
 
@@ -657,8 +664,16 @@ async function fetchTab(tab) {
 
   try {
     if (tab === "weekend") {
-      const data   = await callAPI(getPrompt("weekend"));
-      const parsed = parseAPIResponse(data);
+      const data = await callNewsTab("weekend");
+      if (data.error) throw new Error(data.error.message || "שגיאה");
+      const text = data.content || "";
+      let parsed = null;
+      for (const fn of [
+        () => JSON.parse(text.trim()),
+        () => JSON.parse(text.replace(/```json\s*/gi, "").replace(/```\s*/g, "").trim()),
+        () => { const m = text.match(/\[[\s\S]*\]/); if (m) return JSON.parse(m[0]); throw new Error(); },
+      ]) { try { parsed = fn(); break; } catch {} }
+      if (!parsed) throw new Error("שגיאה בניתוח תשובת סופ״ש");
       state.cache[tab] = parsed;
     } else {
       const data = await callNewsTab(tab);
