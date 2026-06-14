@@ -31,7 +31,8 @@ const RSS = {
     { url: "https://www.jpost.com/rss/rssfeedsfrontpage.aspx" },
     { url: "https://www.ynetnews.com/Integration/StoryRss2.xml" },
     { url: "https://rss.walla.co.il/feed/1" },
-    // ערוץ 14, מאקו, חדשות 12/13 — אין RSS נגיש (bot protection)
+    { url: "https://www.israelhayom.co.il/rss.xml" },
+    // ערוץ 14, מאקו, חדשות 12/13, הארץ — אין RSS נגיש (bot protection / paywall)
   ],
   world:   [
     { url: "https://feeds.bbci.co.uk/news/world/rss.xml" },
@@ -40,6 +41,8 @@ const RSS = {
   usa:     [
     { url: "https://feeds.npr.org/1001/rss.xml" },
     { url: "https://feeds.bbci.co.uk/news/world/us_and_canada/rss.xml" },
+    { url: "https://www.cbsnews.com/latest/rss/main" },
+    { url: "https://rss.politico.com/politics-news.xml" },
     { url: "https://moxie.foxnews.com/google-publisher/us.xml", warn: true },
   ],
   uk:      [
