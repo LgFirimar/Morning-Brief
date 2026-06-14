@@ -19,6 +19,7 @@ const RSS = {
   canada:  [
     { url: "https://rss.cbc.ca/lineup/canada.xml" },
     { url: "https://www.theglobeandmail.com/arc/outboundfeeds/rss/category/canada/" },
+    { url: "https://globalnews.ca/canada/feed/" },
   ],
   toronto: [
     { url: "https://rss.cbc.ca/lineup/toronto.xml" },
