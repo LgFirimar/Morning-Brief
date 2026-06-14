@@ -780,7 +780,11 @@ function buildTabContent(tabKey, tab) {
   if (tabKey === "weekend") {
     const allWeekend = (state.cache.weekend || []).concat(state.weekendExtra);
     return `
-      <div class="refresh-row">
+      <div class="refresh-row" style="justify-content:space-between">
+        <div style="display:flex;gap:6px">
+          <button class="btn-refresh" style="border:1.5px solid #7d3c98;color:#7d3c98" data-switch-tab="done">✅ ביקרנו${state.done.length ? ` (${state.done.length})` : ""}</button>
+          <button class="btn-refresh" style="border:1.5px solid #e67e22;color:#e67e22" data-switch-tab="favorites">⭐ הדלקת!${state.favorites.length ? ` (${state.favorites.length})` : ""}</button>
+        </div>
         <button class="btn-refresh" style="border:1.5px solid ${tab.color};color:${tab.color}" data-retry="${tabKey}">🔄 רענן</button>
       </div>
       ${allWeekend.map((item, i) => buildCard(item, i, tab, true)).join("")}
@@ -1047,6 +1051,11 @@ function attachEvents() {
       if (key !== "done" && key !== "favorites" && !state.cache[key] && !state.loading[key]) fetchTab(key);
       else render();
     });
+  });
+
+  // Weekend shortcut buttons → switch tab
+  document.querySelectorAll("[data-switch-tab]").forEach(el => {
+    el.addEventListener("click", () => { state.activeTab = el.dataset.switchTab; render(); });
   });
 
   // Retry / refresh / load
