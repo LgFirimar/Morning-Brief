@@ -515,7 +515,7 @@ function interestsDesc() {
 }
 
 // ─── PROMPTS ─────────────────────────────────────────────────────────────────
-const NEWS_FIELDS = `title (כותרת בעברית תקנית ותמציתית, עד 10 מילים), summary (2 משפטים בעברית תקנית), details (3 משפטים בעברית תקנית עם הקשר נוסף), category (פוליטיקה|חדשות|תרבות|ויראלי), emoji, url (URL of the original article from a reputable news site, or "" if unknown), reliability (גבוהה|בינונית|נמוכה), published (תאריך פרסום משוער בעברית, למשל "12 ביוני" או "אתמול")`;
+const NEWS_FIELDS = `title (כותרת בעברית תקנית ותמציתית, עד 10 מילים), summary (2 משפטים בעברית תקנית), details (3 משפטים בעברית תקנית עם הקשר נוסף), category (פוליטיקה|חדשות|תרבות|ויראלי), emoji, url (URL of the original article — for Canada/Toronto use cbc.ca, thestar.com, theglobeandmail.com, nationalpost.com, or ctvnews.ca; for international use reuters.com, apnews.com, bbc.com, or theguardian.com. Always provide your best-guess URL. Use "" only if the story is entirely fictional), reliability (גבוהה|בינונית|נמוכה), published (תאריך פרסום משוער בעברית, למשל "12 ביוני" או "אתמול")`;
 
 function getPrompt(tab) {
   if (tab === "canada") return `Today is ${DATE_STR} in Toronto, Canada.
@@ -915,7 +915,7 @@ function buildCard(item, i, tab, isWeekend) {
         <div class="card-summary">${item.summary}</div>
         ${item.address ? `<div class="card-address">📌 ${item.address}</div>` : ""}
         <div class="card-actions">
-          ${!isWeekend ? `<a class="btn-link" style="color:${tab.color}" href="${item.url && item.url.startsWith('http') ? item.url : 'https://news.google.com/search?q=' + encodeURIComponent(item.title) + '&hl=he'}" target="_blank" rel="noopener">מקור ↗</a>` : (item.url ? `<a class="btn-link" style="color:${tab.color}" href="${item.url}" target="_blank" rel="noopener">אתר ↗</a>` : "")}
+          ${!isWeekend ? `<a class="btn-link" style="color:${tab.color}" href="${item.url && item.url.startsWith('http') ? item.url : 'https://www.google.com/search?q=' + encodeURIComponent('"' + item.title + '"') + '&tbm=nws'}" target="_blank" rel="noopener">מקור ↗</a>` : (item.url ? `<a class="btn-link" style="color:${tab.color}" href="${item.url}" target="_blank" rel="noopener">אתר ↗</a>` : "")}
           ${isWeekend ? `<button class="btn-fav${isFavorite(item.title) ? " btn-fav-active" : ""}" data-fav-tab="${tab.key}" data-fav-idx="${i}" title="${isFavorite(item.title) ? "הסר ממועדפים" : "הוסף למועדפים"}">⭐</button>` : ""}
           ${isWeekend && !done ? `<button class="btn-done-mark" data-done-tab="${tab.key}" data-done-idx="${i}">✓ ביקרנו</button>` : ""}
           <button class="btn-expand"
