@@ -71,17 +71,58 @@ const RSS = {
     { url: "https://www3.nhk.or.jp/rss/news/cat0.xml" },
     { url: "https://www.japantimes.co.jp/feed/" },
   ],
-  india:   [
+  india:     [
     { url: "https://feeds.bbci.co.uk/news/world/asia/rss.xml" },
     { url: "https://www.aljazeera.com/xml/rss/all.xml" },
+  ],
+  australia: [
+    { url: "https://www.abc.net.au/news/feed/51120/rss.xml" },
+    { url: "https://feeds.bbci.co.uk/news/world/asia/rss.xml" },
+  ],
+  lebanon:   [
+    { url: "https://en.annahar.com/rss" },
+    { url: "https://www.aljazeera.com/xml/rss/all.xml" },
+    { url: "https://www.middleeasteye.net/rss" },
+  ],
+  egypt:     [
+    { url: "https://www.egyptindependent.com/feed/" },
+    { url: "https://egyptianstreets.com/feed/" },
+    { url: "https://www.aljazeera.com/xml/rss/all.xml" },
+  ],
+  jordan:    [
+    { url: "https://www.al-monitor.com/rss" },
+    { url: "https://www.middleeasteye.net/rss" },
+    { url: "https://www.aljazeera.com/xml/rss/all.xml" },
+  ],
+  syria:     [
+    { url: "https://syriadirect.org/feed/" },
+    { url: "https://www.al-monitor.com/rss" },
+    { url: "https://www.middleeasteye.net/rss" },
+  ],
+  saudi:     [
+    { url: "https://www.arabnews.com/rss.xml" },
+    { url: "https://www.al-monitor.com/rss" },
+    { url: "https://www.middleeasteye.net/rss" },
+  ],
+  qatar:     [
+    { url: "https://www.aljazeera.com/xml/rss/all.xml" },
+    { url: "https://www.al-monitor.com/rss" },
+  ],
+  iran:      [
+    { url: "https://www.al-monitor.com/rss" },
+    { url: "https://www.middleeasteye.net/rss" },
+    { url: "https://www.presstv.ir/rss.xml", warn: true },
   ],
 };
 
 const HEADINGS = {
-  canada:  "🇨🇦 קנדה",  toronto: "🏙️ טורונטו", israel:  "🇮🇱 ישראל",
-  world:   "🌍 עולם",   usa:     "🇺🇸 ארה״ב",  uk:      "🇬🇧 בריטניה",
-  france:  "🇫🇷 צרפת",  germany: "🇩🇪 גרמניה", italy:   "🇮🇹 איטליה",
-  spain:   "🇪🇸 ספרד",  japan:   "🇯🇵 יפן",    india:   "🇮🇳 הודו",
+  canada:    "🇨🇦 קנדה",      toronto:   "🏙️ טורונטו",  israel:    "🇮🇱 ישראל",
+  world:     "🌍 עולם",       usa:       "🇺🇸 ארה״ב",    uk:        "🇬🇧 בריטניה",
+  france:    "🇫🇷 צרפת",      germany:   "🇩🇪 גרמניה",   italy:     "🇮🇹 איטליה",
+  spain:     "🇪🇸 ספרד",      japan:     "🇯🇵 יפן",      india:     "🇮🇳 הודו",
+  australia: "🇦🇺 אוסטרליה",  lebanon:   "🇱🇧 לבנון",    egypt:     "🇪🇬 מצריים",
+  jordan:    "🇯🇴 ירדן",      syria:     "🇸🇾 סוריה",    saudi:     "🇸🇦 סעודיה",
+  qatar:     "🇶🇦 קטאר",      iran:      "🇮🇷 איראן",
 };
 
 // ─── RSS FETCHER ──────────────────────────────────────────────────────────────
