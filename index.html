@@ -413,6 +413,21 @@
     font-size: 0.78rem; color: #666; line-height: 1.9;
   }
 
+  /* SOURCES PANEL */
+  .sources-panel {
+    background: #f8f9fc; border-radius: 14px; padding: 16px;
+    margin-bottom: 10px; border: 1px solid #e0e4ee;
+    font-size: 0.82rem; direction: rtl;
+  }
+  .sources-panel h3 { font-size: 0.9rem; font-weight: 800; color: #0f3460; margin-bottom: 12px; }
+  .btn-info {
+    width: 26px; height: 26px; border-radius: 50%; border: 1.5px solid currentColor;
+    background: transparent; font-size: 0.75rem; font-weight: 700;
+    cursor: pointer; display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0; transition: all 0.15s;
+  }
+  .btn-info:hover { opacity: 0.7; }
+
   /* PROSE NEWS FORMAT */
   .prose-content { font-size: 0.88rem; line-height: 1.8; color: #222; direction: rtl; }
   .prose-content h1, .prose-content h2 {
@@ -519,6 +534,7 @@ const DEFAULT_PROFILE = {
 let state = {
   activeTab:     "canada",
   prose:         {},
+  showSources:   null,
   cache:         {},
   loading:       {},
   errors:        {},
@@ -639,7 +655,7 @@ async function fetchTab(tab) {
     } else {
       const data = await callNewsTab(tab);
       if (data.error) throw new Error(data.error.message || "שגיאה");
-      state.prose[tab] = data.content;
+      state.prose[tab] = { content: data.content, sources: data.sources };
     }
   } catch(e) {
     state.errors[tab] = e?.message || "שגיאה בטעינה. נסי שוב.";
@@ -872,13 +888,20 @@ function buildTabContent(tabKey, tab) {
         <div class="loading-text">לחצי טעינה להתחיל</div>
         <button class="btn-retry" style="background:${tab.color};display:inline-block;margin-top:14px" data-retry="${tabKey}">טעני עכשיו</button>
       </div>`;
+    const showSources = state.showSources === tabKey;
     return `
       ${countrySelector}
-      <div class="refresh-row">
+      <div class="refresh-row" style="justify-content:space-between">
+        <button class="btn-info" style="color:${tab.color}" data-sources-tab="${tabKey}" title="מידע על המקורות">ℹ</button>
         <button class="btn-refresh" style="border:1.5px solid ${tab.color};color:${tab.color}" data-retry="${tabKey}">🔄 רענן</button>
       </div>
+      ${showSources && prose.sources ? `
+        <div class="sources-panel">
+          <h3>📰 מידע על המקורות</h3>
+          ${renderMarkdown(prose.sources)}
+        </div>` : ""}
       <div class="card prose-content" style="padding:18px 16px 14px">
-        ${renderMarkdown(prose)}
+        ${renderMarkdown(prose.content)}
       </div>`;
   }
 
@@ -1147,7 +1170,8 @@ function attachEvents() {
     el.addEventListener("click", () => {
       const key = el.dataset.tab;
       state.activeTab = key;
-      if (key !== "done" && key !== "favorites" && !state.cache[key] && !state.loading[key]) fetchTab(key);
+      state.showSources = null;
+      if (key !== "done" && key !== "favorites" && !state.prose[key] && !state.cache[key] && !state.loading[key]) fetchTab(key);
       else render();
     });
   });
@@ -1162,6 +1186,15 @@ function attachEvents() {
       } else {
         window.open(url, '_blank', 'noopener');
       }
+    });
+  });
+
+  // Sources ℹ button
+  document.querySelectorAll("[data-sources-tab]").forEach(el => {
+    el.addEventListener("click", () => {
+      const key = el.dataset.sourcesTab;
+      state.showSources = state.showSources === key ? null : key;
+      render();
     });
   });
 
