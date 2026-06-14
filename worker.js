@@ -13,20 +13,59 @@ const CORS = {
   "Access-Control-Allow-Headers": "Content-Type",
 };
 
-// ─── DIRECT RSS FEEDS (no Google — works from Cloudflare IPs) ────────────────
+// ─── DIRECT RSS FEEDS (verified to work from Cloudflare IPs) ────────────────
 const RSS = {
-  canada:  "https://rss.cbc.ca/lineup/canada.xml",
-  toronto: "https://rss.cbc.ca/lineup/toronto.xml",
-  israel:  "https://www.timesofisrael.com/feed/",
-  world:   "https://feeds.bbci.co.uk/news/world/rss.xml",
-  usa:     "https://feeds.npr.org/1001/rss.xml",
-  uk:      "https://feeds.bbci.co.uk/news/uk/rss.xml",
-  france:  "https://www.lemonde.fr/rss/une.xml",
-  germany: "https://rss.dw.com/rdf/rss-en-all",
-  italy:   "https://feeds.bbci.co.uk/news/world/europe/rss.xml",
-  spain:   "https://feeds.bbci.co.uk/news/world/europe/rss.xml",
-  japan:   "https://www3.nhk.or.jp/rss/news/cat0.xml",
-  india:   "https://feeds.bbci.co.uk/news/world/asia/rss.xml",
+  canada:  [
+    "https://rss.cbc.ca/lineup/canada.xml",
+    "https://www.theglobeandmail.com/arc/outboundfeeds/rss/category/canada/",
+  ],
+  toronto: [
+    "https://rss.cbc.ca/lineup/toronto.xml",
+    "https://globalnews.ca/toronto/feed/",
+  ],
+  israel:  [
+    "https://www.timesofisrael.com/feed/",
+    "https://www.jpost.com/rss/rssfeedsfrontpage.aspx",
+    "https://www.ynetnews.com/Integration/StoryRss2.xml",
+  ],
+  world:   [
+    "https://feeds.bbci.co.uk/news/world/rss.xml",
+    "https://www.aljazeera.com/xml/rss/all.xml",
+  ],
+  usa:     [
+    "https://feeds.npr.org/1001/rss.xml",
+    "https://feeds.bbci.co.uk/news/world/us_and_canada/rss.xml",
+  ],
+  uk:      [
+    "https://feeds.bbci.co.uk/news/uk/rss.xml",
+    "https://www.theguardian.com/uk/rss",
+    "https://feeds.skynews.com/feeds/rss/uk.xml",
+  ],
+  france:  [
+    "https://www.lemonde.fr/rss/une.xml",
+    "https://www.france24.com/en/rss",
+    "https://www.lefigaro.fr/rss/figaro_actualites.xml",
+  ],
+  germany: [
+    "https://rss.dw.com/rdf/rss-en-all",
+    "https://www.spiegel.de/international/index.rss",
+  ],
+  italy:   [
+    "https://feeds.bbci.co.uk/news/world/europe/rss.xml",
+    "https://www.france24.com/en/rss",
+  ],
+  spain:   [
+    "https://feeds.bbci.co.uk/news/world/europe/rss.xml",
+    "https://www.france24.com/en/rss",
+  ],
+  japan:   [
+    "https://www3.nhk.or.jp/rss/news/cat0.xml",
+    "https://www.japantimes.co.jp/feed/",
+  ],
+  india:   [
+    "https://feeds.bbci.co.uk/news/world/asia/rss.xml",
+    "https://www.aljazeera.com/xml/rss/all.xml",
+  ],
 };
 
 const HEADINGS = {
@@ -42,30 +81,49 @@ function extractCDATA(xml, tag) {
   return (re.exec(xml) || [])[1]?.trim() || "";
 }
 
-async function fetchRSS(countryKey) {
-  const url = RSS[countryKey] || RSS.canada;
+async function fetchSingleRSS(url) {
   try {
     const res = await fetch(url, {
       headers: { "User-Agent": "Mozilla/5.0 (compatible; MorningBrief/1.0)" },
+      signal:  AbortSignal.timeout(6000),
     });
-    if (!res.ok) return "";
-    const xml = await res.text();
-
-    const items = [];
-    const rx = /<item>([\s\S]*?)<\/item>/g;
+    if (!res.ok) return [];
+    const xml    = await res.text();
+    const host   = new URL(url).hostname.replace("www.", "");
+    const items  = [];
+    const rx     = /<item>([\s\S]*?)<\/item>/g;
     let m;
-    while ((m = rx.exec(xml)) !== null && items.length < 10) {
+    while ((m = rx.exec(xml)) !== null && items.length < 5) {
       const chunk = m[1];
-      const title  = extractCDATA(chunk, "title");
-      const link   = extractCDATA(chunk, "link") || extractCDATA(chunk, "guid");
-      const desc   = extractCDATA(chunk, "description").replace(/<[^>]+>/g, "").slice(0, 180);
-      const source = (/<source[^>]*>([^<]*)<\/source>/i.exec(chunk) || [])[1]?.trim() || "";
-      if (title) items.push(`כותרת: ${title}\nURL: ${link}\nמקור: ${source}\nתקציר: ${desc}`);
+      const title = extractCDATA(chunk, "title");
+      const link  = extractCDATA(chunk, "link") || extractCDATA(chunk, "guid");
+      const desc  = extractCDATA(chunk, "description").replace(/<[^>]+>/g, "").slice(0, 160);
+      const src   = (/<source[^>]*>([^<]*)<\/source>/i.exec(chunk) || [])[1]?.trim() || host;
+      if (title) items.push({ title, link, desc, src });
     }
-    return items.join("\n---\n");
+    return items;
   } catch {
-    return "";
+    return [];
   }
+}
+
+async function fetchRSS(countryKey) {
+  const urls    = RSS[countryKey] || RSS.canada;
+  const results = await Promise.allSettled(urls.map(fetchSingleRSS));
+  const seen    = new Set();
+  const items   = [];
+  for (const r of results) {
+    if (r.status !== "fulfilled") continue;
+    for (const item of r.value) {
+      if (!seen.has(item.title)) {
+        seen.add(item.title);
+        items.push(item);
+      }
+    }
+  }
+  return items.slice(0, 12)
+    .map(i => `כותרת: ${i.title}\nURL: ${i.link}\nמקור: ${i.src}\nתקציר: ${i.desc}`)
+    .join("\n---\n");
 }
 
 // ─── PROMPTS ──────────────────────────────────────────────────────────────────
