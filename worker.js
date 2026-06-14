@@ -33,7 +33,8 @@ const COUNTRY_CFG = {
 
 const SYSTEM_PROMPT = `אתה עיתונאי ישראלי מנוסה. כתוב בעברית רהוטה וטבעית, כאילו חושב ישירות בעברית.
 אל תכתוב מבוא — עבור ישירות לתוכן.
-לגבי URLs: אם תוצאות חיפוש סופקו — השתמש רק בהן. אחרת — ציין את אתר הבית של כלי התקשורת הרלוונטי.`;
+חפש באינטרנט ידיעות עדכניות לפני שאתה כותב. השתמש ב-URLs אמיתיים מהחיפוש.
+לעולם אל תוסיף הערות על מגבלות ידע או תאריך תפוגה — פשוט דווח על מה שמצאת.`;
 
 const NEWS_FORMAT = `
 פורמט כל ידיעה:
@@ -91,9 +92,7 @@ async function handleNewsTab(body, env) {
     ? `תוצאות חיפוש עדכניות שמצאתי:\n${results}\n\nהשתמש ב-URLs האלו בלבד.`
     : `אין תוצאות חיפוש — השתמש בידע שלך, וציין קישור לאתר הבית של כל מקור.`;
 
-  const userPrompt = `ספר לי מה קורה היום ב${cfg.heading} (${dateStr}).
-
-${searchContext}
+  const userPrompt = `ספר לי מה קורה היום ב${cfg.heading} (${dateStr}). חפש באינטרנט ידיעות עדכניות.
 
 ${NEWS_FORMAT}
 
@@ -101,25 +100,50 @@ ${NEWS_FORMAT}
 
 ${SOURCES_FORMAT}`;
 
-  const upstream = await fetch(ANTHROPIC_API, {
-    method:  "POST",
-    headers: {
-      "Content-Type":      "application/json",
-      "x-api-key":         env.ANTHROPIC_API_KEY,
-      "anthropic-version": "2023-06-01",
-    },
-    body: JSON.stringify({
-      model:      MODEL,
-      max_tokens: 4000,
-      system:     SYSTEM_PROMPT,
-      messages:   [{ role: "user", content: userPrompt }],
-    }),
-  });
+  // Multi-turn loop to handle web_search tool calls
+  let messages = [{ role: "user", content: userPrompt }];
+  let finalText = "";
 
-  const data = await upstream.json();
-  if (data.error) return { error: data.error };
-  const text = (data.content || []).filter(b => b.type === "text").map(b => b.text).join("");
-  const [content, sources = ""] = text.split("===SOURCES===");
+  for (let turn = 0; turn < 6; turn++) {
+    const res = await fetch(ANTHROPIC_API, {
+      method:  "POST",
+      headers: {
+        "Content-Type":      "application/json",
+        "x-api-key":         env.ANTHROPIC_API_KEY,
+        "anthropic-version": "2023-06-01",
+        "anthropic-beta":    "web-search-2025-03-05",
+      },
+      body: JSON.stringify({
+        model:      MODEL,
+        max_tokens: 4000,
+        system:     SYSTEM_PROMPT,
+        tools:      [{ type: "web_search_20250305", name: "web_search" }],
+        messages,
+      }),
+    });
+
+    const data = await res.json();
+    if (data.error) return { error: data.error };
+
+    if (data.stop_reason === "end_turn") {
+      finalText = (data.content || []).filter(b => b.type === "text").map(b => b.text).join("");
+      break;
+    }
+
+    if (data.stop_reason === "tool_use") {
+      messages.push({ role: "assistant", content: data.content });
+      const toolResults = (data.content || [])
+        .filter(b => b.type === "tool_use")
+        .map(b => ({ type: "tool_result", tool_use_id: b.id, content: "" }));
+      if (toolResults.length) messages.push({ role: "user", content: toolResults });
+      else break;
+    } else {
+      finalText = (data.content || []).filter(b => b.type === "text").map(b => b.text).join("");
+      break;
+    }
+  }
+
+  const [content, sources = ""] = finalText.split("===SOURCES===");
   return { content: content.trim(), sources: sources.trim() };
 }
 
