@@ -24,6 +24,7 @@ const RSS = {
   toronto: [
     { url: "https://rss.cbc.ca/lineup/toronto.xml" },
     { url: "https://globalnews.ca/toronto/feed/" },
+    { url: "https://toronto.citynews.ca/feed/" },
   ],
   israel:  [
     { url: "https://www.timesofisrael.com/feed/" },
