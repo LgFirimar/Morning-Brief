@@ -864,7 +864,7 @@ function buildFavoriteCard(item, i, tab) {
         <div class="card-summary">${item.summary}</div>
         ${item.address ? `<div class="card-address">📌 ${item.address}</div>` : ""}
         <div class="card-actions">
-          ${item.url ? `<a class="btn-link" style="color:#e67e22" href="${item.url}" target="_blank" rel="noopener">אתר ↗</a>` : ""}
+          ${item.url ? `<button class="btn-link" style="color:#e67e22" data-open="${item.url}">אתר ↗</button>` : ""}
           <button class="btn-undone" style="color:#e67e22;border-color:#e67e22;background:#fef5ec" data-unfav-idx="${i}">✕ הסר</button>
           <button class="btn-expand"
             style="background:${isOpen ? "#e67e22" : "#fff"};color:${isOpen ? "#fff" : "#e67e22"};border:1.5px solid #e67e22"
@@ -930,7 +930,7 @@ function buildCard(item, i, tab, isWeekend) {
         <div class="card-summary">${item.summary}</div>
         ${item.address ? `<div class="card-address">📌 ${item.address}</div>` : ""}
         <div class="card-actions">
-          ${!isWeekend ? `<a class="btn-link" style="color:${tab.color}" href="${srcUrl}" target="_blank" rel="noopener">${item.url && item.url.startsWith('http') ? "מקור ↗" : "חיפוש ↗"}</a>` : (item.url ? `<a class="btn-link" style="color:${tab.color}" href="${item.url}" target="_blank" rel="noopener">אתר ↗</a>` : "")}
+          ${!isWeekend ? `<button class="btn-link" style="color:${tab.color}" data-open="${srcUrl}">${item.url && item.url.startsWith('http') ? "מקור ↗" : "חיפוש ↗"}</button>` : (item.url ? `<button class="btn-link" style="color:${tab.color}" data-open="${item.url}">אתר ↗</button>` : "")}
           ${isWeekend ? `<button class="btn-fav${isFavorite(item.title) ? " btn-fav-active" : ""}" data-fav-tab="${tab.key}" data-fav-idx="${i}" title="${isFavorite(item.title) ? "הסר ממועדפים" : "הוסף למועדפים"}">⭐</button>` : ""}
           ${isWeekend && !done ? `<button class="btn-done-mark" data-done-tab="${tab.key}" data-done-idx="${i}">✓ ביקרנו</button>` : ""}
           <button class="btn-expand"
@@ -967,7 +967,7 @@ function buildDoneCard(item, i, tab) {
         <div class="card-summary">${item.summary}</div>
         ${item.address ? `<div class="card-address">📌 ${item.address}</div>` : ""}
         <div class="card-actions">
-          ${item.url ? `<a class="btn-link" style="color:${tab.color}" href="${item.url}" target="_blank" rel="noopener">קישור ↗</a>` : ""}
+          ${item.url ? `<button class="btn-link" style="color:${tab.color}" data-open="${item.url}">קישור ↗</button>` : ""}
           <button class="btn-undone" data-undone-idx="${i}">↩ הסר</button>
           <button class="btn-expand"
             style="background:${isOpen ? tab.color : "#fff"};color:${isOpen ? "#fff" : tab.color};border:1.5px solid ${tab.color}"
@@ -1058,6 +1058,15 @@ function attachEvents() {
       state.activeTab = key;
       if (key !== "done" && key !== "favorites" && !state.cache[key] && !state.loading[key]) fetchTab(key);
       else render();
+    });
+  });
+
+  // Open external URL — works on iOS standalone mode too
+  document.querySelectorAll("[data-open]").forEach(el => {
+    el.addEventListener("click", () => {
+      const url = el.dataset.open;
+      const w = window.open(url, '_blank');
+      if (!w) window.location.href = url;
     });
   });
 
