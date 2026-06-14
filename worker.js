@@ -88,10 +88,6 @@ async function handleNewsTab(body, env) {
   const results = await braveSearch(cfg.q, cfg.cc, env);
 
   const searchContext = results
-    ? `תוצאות חיפוש עדכניות שמצאתי:\n${results}\n\nהשתמש ב-URLs האלו בלבד.`
-    : `אין תוצאות חיפוש — השתמש בידע שלך, וציין קישור לאתר הבית של כל מקור.`;
-
-  const searchContext = results
     ? `ידיעות עדכניות שמצאתי (השתמש ב-URLs האלו):\n${results}`
     : "";
 
