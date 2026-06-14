@@ -473,8 +473,8 @@ const TABS = [
   { key:"toronto", label:"🏙️ טורונטו", cls:"toronto", color:"#1a5276", bg:"#eaf4fb" },
   { key:"custom",  label:"🌍 אחר",     cls:"custom",  color:"#c0711a", bg:"#fef5ec" },
   { key:"weekend", label:"🎉 סופ״ש",   cls:"weekend", color:"#1e8449", bg:"#eafaf1" },
-  { key:"done",      label:"✅ ביקרנו",   cls:"done",      color:"#7d3c98", bg:"#f5eef8" },
-  { key:"favorites", label:"⭐ הדלקת!",  cls:"favorites", color:"#e67e22", bg:"#fef5ec" },
+  { key:"done",      label:"✅ ביקרנו",   cls:"done",      color:"#7d3c98", bg:"#f5eef8", hidden:true },
+  { key:"favorites", label:"⭐ הדלקת!",  cls:"favorites", color:"#e67e22", bg:"#fef5ec", hidden:true },
 ];
 
 const DEFAULT_PROFILE = {
@@ -729,7 +729,7 @@ function buildHTML() {
         </div>
         ${IS_THURSDAY ? `<div class="thursday-badge">🎉 יום חמישי — כולל המלצות סופ״ש!</div>` : ""}
         <div class="tabs">
-          ${TABS.map(t => `
+          ${TABS.filter(t => !t.hidden).map(t => `
             <button class="tab ${t.cls}${state.activeTab === t.key ? " active" : ""}" data-tab="${t.key}">
               ${t.label}
               ${t.key === "weekend" && IS_THURSDAY ? `<span class="tab-new">חדש</span>` : ""}
