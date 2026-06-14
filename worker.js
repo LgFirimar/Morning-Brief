@@ -1,13 +1,11 @@
 // Morning Brief — Cloudflare Worker
-// GET  /          → serves app HTML from GitHub Pages
-// GET  /icon.png  → proxies static assets from GitHub Pages
-// POST /          → { tab } → Brave Search + Claude briefing (prose)
-// POST /          → { model, messages } → legacy Anthropic proxy (weekend activities)
+// GET  /  → serves app HTML from GitHub Pages
+// POST /  → { tab } → Google News RSS + Claude briefing
+// POST /  → { model, messages } → Anthropic proxy (weekend activities)
 
-const ANTHROPIC_API  = "https://api.anthropic.com/v1/messages";
-const BRAVE_NEWS_API = "https://api.search.brave.com/res/v1/news/search";
-const GITHUB_PAGES   = "https://lgfirimar.github.io/Morning-Brief/";
-const MODEL          = "claude-sonnet-4-6";
+const ANTHROPIC_API = "https://api.anthropic.com/v1/messages";
+const GITHUB_PAGES  = "https://lgfirimar.github.io/Morning-Brief/";
+const MODEL         = "claude-sonnet-4-6";
 
 const CORS = {
   "Access-Control-Allow-Origin":  "*",
@@ -15,25 +13,65 @@ const CORS = {
   "Access-Control-Allow-Headers": "Content-Type",
 };
 
-// ─── COUNTRY CONFIG ───────────────────────────────────────────────────────────
-const COUNTRY_CFG = {
-  canada:  { q: "Canada national news today",  cc: "CA", heading: "🇨🇦 קנדה"     },
-  toronto: { q: "Toronto city news today",     cc: "CA", heading: "🏙️ טורונטו"  },
-  israel:  { q: "Israel news today",           cc: "IL", heading: "🇮🇱 ישראל"    },
-  world:   { q: "World international news today", cc: "US", heading: "🌍 עולם"   },
-  usa:     { q: "United States news today",    cc: "US", heading: "🇺🇸 ארה״ב"   },
-  uk:      { q: "United Kingdom news today",   cc: "GB", heading: "🇬🇧 בריטניה" },
-  france:  { q: "France news today",           cc: "FR", heading: "🇫🇷 צרפת"    },
-  germany: { q: "Germany news today",          cc: "DE", heading: "🇩🇪 גרמניה"  },
-  italy:   { q: "Italy news today",            cc: "IT", heading: "🇮🇹 איטליה"  },
-  spain:   { q: "Spain news today",            cc: "ES", heading: "🇪🇸 ספרד"    },
-  japan:   { q: "Japan news today",            cc: "JP", heading: "🇯🇵 יפן"     },
-  india:   { q: "India news today",            cc: "IN", heading: "🇮🇳 הודו"    },
+// ─── GOOGLE NEWS RSS URLS ─────────────────────────────────────────────────────
+const RSS = {
+  canada:  "https://news.google.com/rss/search?q=canada+news+when:1d&hl=en-CA&gl=CA&ceid=CA:en",
+  toronto: "https://news.google.com/rss/search?q=toronto+news+when:1d&hl=en-CA&gl=CA&ceid=CA:en",
+  israel:  "https://news.google.com/rss/search?q=israel+news+when:1d&hl=en-IL&gl=IL&ceid=IL:iw",
+  world:   "https://news.google.com/rss/search?q=world+top+news+when:1d&hl=en-US&gl=US&ceid=US:en",
+  usa:     "https://news.google.com/rss/search?q=united+states+news+when:1d&hl=en-US&gl=US&ceid=US:en",
+  uk:      "https://news.google.com/rss/search?q=uk+britain+news+when:1d&hl=en-GB&gl=GB&ceid=GB:en",
+  france:  "https://news.google.com/rss/search?q=france+news+when:1d&hl=fr&gl=FR&ceid=FR:fr",
+  germany: "https://news.google.com/rss/search?q=germany+news+when:1d&hl=de&gl=DE&ceid=DE:de",
+  italy:   "https://news.google.com/rss/search?q=italy+news+when:1d&hl=it&gl=IT&ceid=IT:it",
+  spain:   "https://news.google.com/rss/search?q=spain+news+when:1d&hl=es&gl=ES&ceid=ES:es",
+  japan:   "https://news.google.com/rss/search?q=japan+news+when:1d&hl=ja&gl=JP&ceid=JP:ja",
+  india:   "https://news.google.com/rss/search?q=india+news+when:1d&hl=en-IN&gl=IN&ceid=IN:en",
 };
 
-const SYSTEM_PROMPT = `אתה עיתונאי ישראלי מנוסה. כתוב בעברית רהוטה וטבעית, כאילו חושב ישירות בעברית.
+const HEADINGS = {
+  canada:  "🇨🇦 קנדה",  toronto: "🏙️ טורונטו", israel:  "🇮🇱 ישראל",
+  world:   "🌍 עולם",   usa:     "🇺🇸 ארה״ב",  uk:      "🇬🇧 בריטניה",
+  france:  "🇫🇷 צרפת",  germany: "🇩🇪 גרמניה", italy:   "🇮🇹 איטליה",
+  spain:   "🇪🇸 ספרד",  japan:   "🇯🇵 יפן",    india:   "🇮🇳 הודו",
+};
+
+// ─── RSS FETCHER ──────────────────────────────────────────────────────────────
+function extractCDATA(xml, tag) {
+  const re = new RegExp(`<${tag}>(?:<!\\[CDATA\\[)?([\\s\\S]*?)(?:\\]\\]>)?<\\/${tag}>`, "i");
+  return (re.exec(xml) || [])[1]?.trim() || "";
+}
+
+async function fetchRSS(countryKey) {
+  const url = RSS[countryKey] || RSS.canada;
+  try {
+    const res = await fetch(url, {
+      headers: { "User-Agent": "Mozilla/5.0 (compatible; MorningBrief/1.0)" },
+    });
+    if (!res.ok) return "";
+    const xml = await res.text();
+
+    const items = [];
+    const rx = /<item>([\s\S]*?)<\/item>/g;
+    let m;
+    while ((m = rx.exec(xml)) !== null && items.length < 10) {
+      const chunk = m[1];
+      const title  = extractCDATA(chunk, "title");
+      const link   = extractCDATA(chunk, "link") || extractCDATA(chunk, "guid");
+      const desc   = extractCDATA(chunk, "description").replace(/<[^>]+>/g, "").slice(0, 180);
+      const source = (/<source[^>]*>([^<]*)<\/source>/i.exec(chunk) || [])[1]?.trim() || "";
+      if (title) items.push(`כותרת: ${title}\nURL: ${link}\nמקור: ${source}\nתקציר: ${desc}`);
+    }
+    return items.join("\n---\n");
+  } catch {
+    return "";
+  }
+}
+
+// ─── PROMPTS ──────────────────────────────────────────────────────────────────
+const SYSTEM_PROMPT = `אתה עיתונאי ישראלי מנוסה. כתוב בעברית רהוטה וטבעית, חושב ישירות בעברית.
 אל תכתוב מבוא — עבור ישירות לתוכן.
-לעולם אל תוסיף הערות על מגבלות ידע, תאריך תפוגה, או כל הסתייגות — פשוט דווח על הידיעות.`;
+לעולם אל תוסיף הסתייגויות על מגבלות ידע — פשוט דווח על הידיעות שקיבלת.`;
 
 const NEWS_FORMAT = `
 פורמט כל ידיעה:
@@ -45,58 +83,32 @@ const NEWS_FORMAT = `
 
 const SOURCES_FORMAT = `
 ===SOURCES===
-לכל כלי תקשורת שציינת, כתוב בפורמט הזה בדיוק:
+לכל כלי תקשורת שציינת:
 **[שם המקור]**
-בעלות: [מי מחזיק בו]
+בעלות: [מי מחזיק]
 נטייה: [ניטרלי / שמאל-מרכז / ימין-מרכז / שמאל / ימין]
 אמינות: [⭐ עד ⭐⭐⭐⭐⭐]
 הערה: [משפט אחד על מהימנות מול פייק ניוז]`;
 
-// ─── BRAVE SEARCH ─────────────────────────────────────────────────────────────
-async function braveSearch(query, countryCode, env) {
-  if (!env.BRAVE_API_KEY) return "";
-  try {
-    const params = new URLSearchParams({
-      q:           query,
-      count:       "10",
-      country:     countryCode,
-      search_lang: "en",
-      freshness:   "pd",
-    });
-    const res = await fetch(`${BRAVE_NEWS_API}?${params}`, {
-      headers: {
-        "Accept":               "application/json",
-        "X-Subscription-Token": env.BRAVE_API_KEY,
-      },
-    });
-    if (!res.ok) return "";
-    const data = await res.json();
-    return (data.results || []).slice(0, 10).map((r, i) =>
-      `[${i + 1}] ${r.title}\nURL: ${r.url}\nמקור: ${r.meta_url?.netloc || ""}\nתקציר: ${r.description || ""}\nפרסום: ${r.age || "היום"}`
-    ).join("\n\n");
-  } catch {
-    return "";
-  }
-}
-
 // ─── NEWS HANDLER ─────────────────────────────────────────────────────────────
 async function handleNewsTab(body, env) {
   const { tab, customCountry, dateStr } = body;
-  const key = tab === "custom" ? (customCountry || "israel") : tab;
-  const cfg = COUNTRY_CFG[key] || COUNTRY_CFG.canada;
+  const key     = tab === "custom" ? (customCountry || "israel") : tab;
+  const heading = HEADINGS[key] || HEADINGS.canada;
 
-  const results = await braveSearch(cfg.q, cfg.cc, env);
+  const rssResults = await fetchRSS(key);
 
-  const searchContext = results
-    ? `ידיעות עדכניות שמצאתי (השתמש ב-URLs האלו):\n${results}`
-    : "";
+  const context = rssResults
+    ? `ידיעות עדכניות לדיווח (השתמש ב-URLs האלו):\n${rssResults}`
+    : "דווח על ידיעות לפי מה שאתה יודע.";
 
-  const userPrompt = `ספר לי מה קורה היום ב${cfg.heading} (${dateStr}).
-${searchContext}
+  const userPrompt = `ספר לי מה קורה היום ב${heading} (${dateStr}).
+
+${context}
 
 ${NEWS_FORMAT}
 
-כתוב ## 🗓️ ${cfg.heading} — ${dateStr} ואז 4-5 ידיעות.
+כתוב ## 🗓️ ${heading} — ${dateStr} ואז 4-5 ידיעות חשובות.
 
 ${SOURCES_FORMAT}`;
 
@@ -161,7 +173,7 @@ export default {
         });
       }
 
-      // News tab request → Brave Search + Claude
+      // News tab → Google News RSS + Claude
       if (body.tab) {
         const result = await handleNewsTab(body, env);
         return new Response(JSON.stringify(result), {
@@ -169,7 +181,7 @@ export default {
         });
       }
 
-      // Legacy Anthropic proxy (weekend activities)
+      // Anthropic proxy (weekend activities)
       const upstream = await fetch(ANTHROPIC_API, {
         method:  "POST",
         headers: {
